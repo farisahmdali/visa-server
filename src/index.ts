@@ -1,0 +1,139 @@
+// Note: Install required packages with: npm install node-cron @types/node-cron
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import * as cron from 'node-cron';
+import Iceland from './country/iceland';
+import { startImapService } from './services/imap';
+
+// Load environment variables
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/visa-server';
+const email = process.env.VFS_EMAIL || 'farisahmdali@gmail.com';
+const password = process.env.VFS_PASS || 'farisahmdali@gmail.com';
+const iceland = new Iceland(email, password);
+
+// Store the latest OTP received from email
+let latestOtp: string | null = null;
+let otpTimestamp: Date | null = null;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// MongoDB connection
+const connectDB = async () => {
+  try {
+    await mongoose.connect(MONGODB_URI);
+    console.log('✅ MongoDB connected successfully');
+  } catch (error) {
+    console.error('❌ MongoDB connection error:', error);
+    process.exit(1);
+  }
+};
+
+app.get('/', (req, res) => {
+  res.status(200).json({ 
+    message: 'Welcome to Visa Server API',
+    version: '1.0.0',
+    data:iceland.slot
+  });
+});
+
+
+// OTP callback function for IMAP service
+const handleOtpReceived = async (otp: string): Promise<void> => {
+  try {
+    latestOtp = otp;
+    otpTimestamp = new Date();
+    
+    console.log(`🔑 OTP received from email: ${otp}`);
+    console.log(`📧 OTP stored and available at: http://localhost:${PORT}/otp`);
+    
+    iceland.fillOTP(otp)
+    
+  } catch (error) {
+    console.error('❌ Error handling received OTP:', error);
+  }
+};
+
+// Cron job function to initialize Iceland service
+const initializeIcelandService = async (): Promise<void> => {
+  try {
+    console.log('🕐 Starting Iceland service initialization...');
+    await iceland.init();
+    console.log('✅ Iceland service initialized successfully');
+  } catch (error) {
+    console.error('❌ Error initializing Iceland service:', error);
+  }
+};
+
+// Setup cron job
+const setupCronJobs = (): void => {
+  // Initialize immediately on startup
+  console.log('🚀 Initializing Iceland service on startup...');
+  initializeIcelandService();
+  
+  // Run every 5 minutes: */5 * * * *
+   cron.schedule('*/5 * * * *', async () => {
+    console.log('⏰ Cron job triggered - Initializing Iceland service');
+    await initializeIcelandService();
+  }, {
+    timezone: 'UTC'
+  });
+
+  console.log('📅 Cron job scheduled: Iceland service will initialize every 5 minutes');
+};
+
+// Start server
+const startServer = async () => {
+  try {
+    await connectDB();
+    
+    
+    // Start IMAP service with callback
+    try {
+      await startImapService(handleOtpReceived);
+      console.log('📧 IMAP service started successfully');
+    } catch (imapError) {
+      console.warn('⚠️ IMAP service failed to start:', imapError);
+      console.warn('📧 Email monitoring will not be available');
+    }
+    
+    app.listen(PORT, () => {
+      console.log(`🚀 Server is running on port ${PORT}`);
+      console.log(`📖 Health check: http://localhost:${PORT}/health`);
+      console.log(`🔑 OTP endpoint: http://localhost:${PORT}/otp`);
+      console.log(`🔧 Manual Iceland trigger: POST http://localhost:${PORT}/iceland/init`);
+      console.log(`📊 Cron status: GET http://localhost:${PORT}/cron/status`);
+      
+      // Setup cron jobs after server starts
+      setupCronJobs();
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+// Handle graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('\n🛑 Shutting down gracefully...');
+  await mongoose.connection.close();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('\n🛑 Shutting down gracefully...');
+  await mongoose.connection.close();
+  process.exit(0);
+});
+
+startServer();
+
+export default app;
