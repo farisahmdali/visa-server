@@ -1,7 +1,7 @@
 import { connect, type PageWithCursor } from "puppeteer-real-browser";
 
 
- class Iceland {
+ class Malta {
     page: PageWithCursor | null;
     browser: any;
     capturedHeaders: any;
@@ -80,7 +80,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             });
         });
         
-        await this.page.goto("https://visa.vfsglobal.com/gbr/en/isl/login");
+        await this.page.goto("https://visa.vfsglobal.com/gbr/en/mlt/login");
         console.log("Opened page");
         const session = await this.getClearance(60000);
         console.log("Got clearance");
@@ -168,6 +168,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 (window as any).allowCookieInteraction = false;
             });
             
+            await this.delay(2000);
             console.log("Cookie banner handled successfully with controlled interaction");
         } catch (e) {
             console.log("No cookie banner found or already accepted");
@@ -176,6 +177,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 (window as any).allowCookieInteraction = false;
             });
         }
+        await this.delay(10000);
         console.log("Waiting for email field");
         await this.page.waitForSelector("#email", { visible: true, timeout: 10000 });
         await this.page.evaluate((emailValue) => {
@@ -435,6 +437,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 }
             }
         
+            await this.delay(1000);
         
         
             // Try multiple approaches to find and click the Iceland option
@@ -468,6 +471,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 console.log("✅ Successfully selected Iceland option");
         
                 // Wait a bit for any potential API calls triggered by the selection
+                await this.delay(3000);
                 
                 console.log("Waiting for any additional form changes or API calls...");
                 
@@ -497,6 +501,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 if (availableOptions.length > 0) {
                     console.log("Clicking first option as fallback...");
                     await this.page.click('mat-option:first-child');
+                    await this.delay(3000);
                 }
             }
             await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
@@ -545,4 +550,4 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
     }
 }
 
-export default Iceland;
+export default Malta;

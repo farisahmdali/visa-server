@@ -26,7 +26,7 @@ interface ImapMessage {
 }
 
 // Callback function type for OTP handling
-type OtpCallback = (otp: string) => void | Promise<void>;
+type OtpCallback = (otp: string,site:string) => void | Promise<void>;
 
 const config: ImapConfig = {
     imap: {
@@ -96,11 +96,12 @@ const processMessage = async (item: ImapMessage, index: number, otpCallback: Otp
         
         // Extract OTP from message
         const otp = extractOtp(mail);
+        const site = extractSite(mail);
         
         if (otp) {
-            console.log("🔑 OTP Found:", otp);
+            console.log("🔑 OTP Found:", otp,site);
             // Call the provided callback function with the OTP
-            await otpCallback(otp);
+            await otpCallback(otp,site || "");
         }
         
         console.log("--- End New Message ---\n");
@@ -125,6 +126,20 @@ const extractOtp = (mail: ParsedMail): string | null => {
     }
     
     return otpMatch ? otpMatch[0] : null;
+};
+
+const extractSite = (mail: ParsedMail): string | null => {
+    let siteMatch: RegExpMatchArray | null = null;
+    if (mail.text?.includes("/gbr/en/isl")) {
+        return "iceland";
+    }else if (mail.text?.includes("/gbr/en/nor")) {
+        return "norway";
+    }else if (mail.text?.includes("/gbr/en/mlt")) {
+        return "malta";
+    }else if (mail.text?.includes("/gbr/en/ltu")) {
+        return "lithuania";
+    }
+    return siteMatch ? siteMatch[0] : null;
 };
 
 // Export the service for external initialization

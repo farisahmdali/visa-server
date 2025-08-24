@@ -6,6 +6,9 @@ import dotenv from 'dotenv';
 import * as cron from 'node-cron';
 import Iceland from './country/iceland';
 import { startImapService } from './services/imap';
+import Norway from './country/norway';
+import Malta from './country/malta';
+import Lithuania from './country/lithuania';
 
 // Load environment variables
 dotenv.config();
@@ -16,7 +19,9 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/visa-s
 const email = process.env.VFS_EMAIL || 'farisahmdali@gmail.com';
 const password = process.env.VFS_PASS || 'farisahmdali@gmail.com';
 const iceland = new Iceland(email, password);
-
+const norway = new Norway(email, password);
+const malta = new Malta(email, password);
+const lithuania = new Lithuania(email, password);
 // Store the latest OTP received from email
 let latestOtp: string | null = null;
 let otpTimestamp: Date | null = null;
@@ -41,21 +46,34 @@ app.get('/', (req, res) => {
   res.status(200).json({ 
     message: 'Welcome to Visa Server API',
     version: '1.0.0',
-    data:iceland.slot
+    data:{
+      iceland:iceland.slot,
+      norway:norway.slot,
+      malta:malta.slot,
+      lithuania:lithuania.slot
+    }
   });
 });
 
 
+
 // OTP callback function for IMAP service
-const handleOtpReceived = async (otp: string): Promise<void> => {
+const handleOtpReceived = async (otp: string,site:string): Promise<void> => {
   try {
     latestOtp = otp;
     otpTimestamp = new Date();
     
     console.log(`🔑 OTP received from email: ${otp}`);
     console.log(`📧 OTP stored and available at: http://localhost:${PORT}/otp`);
-    
-    iceland.fillOTP(otp)
+    if(site === "iceland"){
+      iceland.fillOTP(otp)
+    }else if(site === "norway"){
+      norway.fillOTP(otp)
+    }else if(site === "malta"){
+      malta.fillOTP(otp)
+    }else if(site === "lithuania"){
+      lithuania.fillOTP(otp)
+    }
     
   } catch (error) {
     console.error('❌ Error handling received OTP:', error);
@@ -66,7 +84,10 @@ const handleOtpReceived = async (otp: string): Promise<void> => {
 const initializeIcelandService = async (): Promise<void> => {
   try {
     console.log('🕐 Starting Iceland service initialization...');
-    await iceland.init();
+    // await iceland.init();
+    // await norway.init();
+    // await malta.init();
+    await lithuania.init();
     console.log('✅ Iceland service initialized successfully');
   } catch (error) {
     console.error('❌ Error initializing Iceland service:', error);
