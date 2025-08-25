@@ -585,12 +585,10 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
                 console.log("Network idle timeout, proceeding anyway");
             })
-            await this.page.waitForSelector('mat-select[formcontrolname="centerCode"]', {
-                visible: true,
-                timeout: 10000
-            }).catch(() => {
-                console.log("Dropdown not found, proceeding anyway");
-            })
+            await this.page.evaluate(() => {
+                window.scrollTo(0, 0);
+            });
+            await this.delay(2000);
             await this.page.click('mat-select[formcontrolname="centerCode"]');
             
             // Verify the dropdown was clicked by checking if it's expanded

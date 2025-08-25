@@ -452,16 +452,12 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 console.log("Option:", option);
                     const text = option.textContent?.trim() || '';
                     console.log("Found option:", text);
-        
-                    if (text.includes('Iceland') && text.includes('London')) {
                         console.log("Found Iceland option:", text);
                         (option as HTMLElement).click();
                         return true;
-                    }
-                
+    
               
                 
-                return false;
             },i);
         
             if (optionSelected) {
@@ -502,6 +498,10 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
                 console.log("Network idle timeout, proceeding anyway");
             })
+            await this.page.evaluate(() => {
+                window.scrollTo(0, 0);
+            });
+            await this.delay(2000);
             await this.page.click('mat-select[formcontrolname="centerCode"]');
             
             // Verify the dropdown was clicked by checking if it's expanded

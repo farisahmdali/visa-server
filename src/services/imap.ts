@@ -138,6 +138,8 @@ const extractSite = (mail: ParsedMail): string | null => {
         return "malta";
     }else if (mail.text?.includes("/gbr/en/ltu")) {
         return "lithuania";
+    }else if (mail.text?.includes("/gbr/en/lva")) {
+        return "latvia";
     }
     return siteMatch ? siteMatch[0] : null;
 };

@@ -9,6 +9,7 @@ import { startImapService } from './services/imap';
 import Norway from './country/norway';
 import Malta from './country/malta';
 import Lithuania from './country/lithuania';
+import Latvia from './country/latvia';
 
 // Load environment variables
 dotenv.config();
@@ -22,6 +23,7 @@ const iceland = new Iceland(email, password);
 const norway = new Norway(email, password);
 const malta = new Malta(email, password);
 const lithuania = new Lithuania(email, password);
+const latvia = new Latvia(email, password);
 // Store the latest OTP received from email
 let latestOtp: string | null = null;
 let otpTimestamp: Date | null = null;
@@ -50,7 +52,8 @@ app.get('/', (req, res) => {
       iceland:iceland.slot,
       norway:norway.slot,
       malta:malta.slot,
-      lithuania:lithuania.slot
+      lithuania:lithuania.slot,
+      latvia:latvia.slot
     }
   });
 });
@@ -73,6 +76,8 @@ const handleOtpReceived = async (otp: string,site:string): Promise<void> => {
       malta.fillOTP(otp)
     }else if(site === "lithuania"){
       lithuania.fillOTP(otp)
+    }else if(site === "latvia"){
+      latvia.fillOTP(otp)
     }
     
   } catch (error) {

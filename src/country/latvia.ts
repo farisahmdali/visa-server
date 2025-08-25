@@ -1,7 +1,7 @@
 import { connect, type PageWithCursor } from "puppeteer-real-browser";
 
 
- class Lithuania {
+ class Latvia {
     page: PageWithCursor | null;
     browser: any;
     capturedHeaders: any;
@@ -81,7 +81,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             });
         });
         
-        await this.page.goto("https://visa.vfsglobal.com/gbr/en/ltu/login");
+        await this.page.goto("https://visa.vfsglobal.com/gbr/en/lva/login");
         console.log("Opened page");
          await this.getClearance(60000);
         console.log("Got clearance");
@@ -626,4 +626,4 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
     }
 }
 
-export default Lithuania;
+export default Latvia;
