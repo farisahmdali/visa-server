@@ -147,6 +147,10 @@ const extractSite = (mail: ParsedMail): string | null => {
         return "hungry";
     }else if (mail.text?.includes("/gbr/en/fin")) {
         return "finland";
+    }else if (mail.text?.includes("/gbr/en/est")) {
+        return "estonia";
+    }else if (mail.text?.includes("/gbr/en/cze")) {
+        return "czech";
     }
     return siteMatch ? siteMatch[0] : null;
 };
