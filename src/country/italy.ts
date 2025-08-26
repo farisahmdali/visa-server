@@ -1,7 +1,7 @@
 import { connect, type PageWithCursor } from "puppeteer-real-browser";
 
 
- class Latvia {
+ class Italy {
     page: PageWithCursor | null;
     browser: any;
     capturedHeaders: any;
@@ -81,7 +81,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             });
         });
         
-        await this.page.goto("https://visa.vfsglobal.com/gbr/en/lva/login");
+        await this.page.goto("https://visa.vfsglobal.com/gbr/en/ita/login");
         console.log("Opened page");
          await this.getClearance(60000);
         console.log("Got clearance");
@@ -230,6 +230,20 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         }
     
         console.log("Submit button clicked, waiting for navigation");
+        await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
+            console.log("Network idle timeout, proceeding anyway");
+        })
+        const isDashboard = await this.page.evaluate(() => {
+            if(window.location.href.includes("dashboard")) {
+                return true;
+            }
+            return false;
+        });
+        if(isDashboard) {
+             this.getSlotsAvailable();
+        }else{
+            await this.page.close();
+        }
 
     }
 
@@ -468,89 +482,98 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         
                
         
-                // console.log("Waiting for appointment category dropdown to become available...");
-                // await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
-                //     console.log("Network idle timeout, proceeding anyway");
-                // })
+                console.log("Waiting for appointment category dropdown to become available...");
+                await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
+                    console.log("Network idle timeout, proceeding anyway");
+                })
         
                 // Check if the next dropdown (appointment category) becomes available
                 try {
-                    // await this.page.waitForSelector('mat-select[formcontrolname="selectedSubvisaCategory"]:not(.mat-mdc-select-disabled)', {
-                    //     visible: true,
-                    //     timeout: 10000
-                    // });
-                    // console.log("✅ Appointment category dropdown became available");
+                    await this.page.waitForSelector('mat-select[formcontrolname="selectedSubvisaCategory"]:not(.mat-mdc-select-disabled)', {
+                        visible: true,
+                        timeout: 10000
+                    });
+                    console.log("✅ Appointment category dropdown became available");
                     
-                    // // Click on appointment category dropdown
-                    // console.log("Clicking on appointment category dropdown...");
-                    // await this.page.click('mat-select[formcontrolname="selectedSubvisaCategory"]');
+                    // Click on appointment category dropdown
+                    console.log("Clicking on appointment category dropdown...");
+                    await this.page.click('mat-select[formcontrolname="selectedSubvisaCategory"]');
                   
                     
-                    // // Select option with keyword "schengen"
-                    // const schengonSelected = await this.page.evaluate(() => {
-                    //     const options = Array.from(document.querySelectorAll('mat-option'));
-                    //     for (const option of options) {
-                    //         const text = option.textContent?.toLowerCase().trim() || '';
-                    //         if (text.includes('schengen')) {
-                    //             console.log("Selecting schengen option:", text);
-                    //             (option as HTMLElement).click();
-                    //             return true;
-                    //         }
-                    //     }
-                    //     return false;
-                    // });
+                    // Select option with keyword "schengen"
+                    const schengonSelected = await this.page.evaluate(() => {
+                        const options = Array.from(document.querySelectorAll('mat-option'));
+                        for (const option of options) {
+                            const text = option.textContent?.toLowerCase().trim() || '';
+                            if (text.includes('italy')) {
+                                console.log("Selecting schengen option:", text);
+                                (option as HTMLElement).click();
+                                return true;
+                            }
+                        }
+                        return false;
+                    });
                     
+                    if (schengonSelected) {
+                        console.log("✅ Successfully selected schengen option");
                         
                         // Wait for sub-category dropdown to become available
-                        console.log("Waiting for sub-category dropdown to become available...");
-                        await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
-                            console.log("Network idle timeout, proceeding anyway");
-                        })
-                        try {
-                            await this.page.waitForSelector('mat-select[formcontrolname="visaCategoryCode"]:not(.mat-mdc-select-disabled)', {
-                                visible: true,
-                                timeout: 10000
-                            });
-                            console.log("✅ Sub-category dropdown became available");
+                        // console.log("Waiting for sub-category dropdown to become available...");
+                        // await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
+                        //     console.log("Network idle timeout, proceeding anyway");
+                        // })
+                        // try {
+                        //     await this.page.waitForSelector('mat-select[formcontrolname="visaCategoryCode"]:not(.mat-mdc-select-disabled)', {
+                        //         visible: true,
+                        //         timeout: 10000
+                        //     });
+                        //     console.log("✅ Sub-category dropdown became available");
                             
-                            // Click on sub-category dropdown
-                            console.log("Clicking on sub-category dropdown...");
-                            await this.page.click('mat-select[formcontrolname="visaCategoryCode"]');
+                        //     // Click on sub-category dropdown
+                        //     console.log("Clicking on sub-category dropdown...");
+                        //     await this.page.click('mat-select[formcontrolname="visaCategoryCode"]');
                           
                             
-                            // Select option with keyword "tourist"
-                            const touristSelected = await this.page.evaluate(() => {
-                                const options = Array.from(document.querySelectorAll('mat-option'));
-                                for (const option of options) {
-                                    const text = option.textContent?.toLowerCase().trim() || '';
-                                    if (text.includes('tourism')) {
-                                        console.log("Selecting tourist option:", text);
-                                        (option as HTMLElement).click();
-                                        return true;
-                                    }
-                                }
-                                return false;
-                            });
+                        //     // Select option with keyword "tourist"
+                        //     const touristSelected = await this.page.evaluate(() => {
+                        //         const options = Array.from(document.querySelectorAll('mat-option'));
+                        //         for (const option of options) {
+                        //             const text = option.textContent?.toLowerCase().trim() || '';
+                        //             if (text.includes('tourist')) {
+                        //                 console.log("Selecting tourist option:", text);
+                        //                 (option as HTMLElement).click();
+                        //                 return true;
+                        //             }
+                        //         }
+                        //         return false;
+                        //     });
                             
-                            if (touristSelected) {
-                                console.log("✅ Successfully selected tourist option");
+                        //     if (touristSelected) {
+                        //         console.log("✅ Successfully selected tourist option");
                                 
-                            } else {
-                                console.log("❌ Could not find tourist option in sub-category");
-                                // Log available options for debugging
-                                const availableSubOptions = await this.page.evaluate(() => {
-                                    const options = Array.from(document.querySelectorAll('mat-option'));
-                                    return options.map(option => option.textContent?.trim() || '');
-                                });
-                                console.log("Available sub-category options:", availableSubOptions);
-                                this.page.click('mat-option:first-child');
-                            }
+                        //     } else {
+                        //         console.log("❌ Could not find tourist option in sub-category");
+                        //         // Log available options for debugging
+                        //         const availableSubOptions = await this.page.evaluate(() => {
+                        //             const options = Array.from(document.querySelectorAll('mat-option'));
+                        //             return options.map(option => option.textContent?.trim() || '');
+                        //         });
+                        //         console.log("Available sub-category options:", availableSubOptions);
+                        //     }
                             
-                        } catch (error) {
-                            console.log("⚠️ Sub-category dropdown didn't become available");
-                        }
+                        // } catch (error) {
+                        //     console.log("⚠️ Sub-category dropdown didn't become available");
+                        // }
                         
-                   
+                    } else {
+                        console.log("❌ Could not find schengen option in appointment category");
+                        // Log available options for debugging
+                        const availableCategoryOptions = await this.page.evaluate(() => {
+                            const options = Array.from(document.querySelectorAll('mat-option'));
+                            return options.map(option => option.textContent?.trim() || '');
+                        });
+                        console.log("Available appointment category options:", availableCategoryOptions);
+                    }
                     
                 } catch (error) {
                     console.log("⚠️ Appointment category dropdown didn't become available");
@@ -576,12 +599,10 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
                 console.log("Network idle timeout, proceeding anyway");
             })
-            // Scroll to top of the page to ensure elements are in view
             await this.page.evaluate(() => {
                 window.scrollTo(0, 0);
             });
             await this.delay(2000);
-            console.log("📜 Scrolled to top of page");
             await this.page.click('mat-select[formcontrolname="centerCode"]');
             
             // Verify the dropdown was clicked by checking if it's expanded
@@ -627,4 +648,4 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
     }
 }
 
-export default Latvia;
+export default Italy;

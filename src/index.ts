@@ -10,6 +10,9 @@ import Norway from './country/norway';
 import Malta from './country/malta';
 import Lithuania from './country/lithuania';
 import Latvia from './country/latvia';
+import Italy from './country/italy';
+import Hungry from './country/hungry';
+import Finland from './country/finland';
 
 // Load environment variables
 dotenv.config();
@@ -24,6 +27,9 @@ const norway = new Norway(email, password);
 const malta = new Malta(email, password);
 const lithuania = new Lithuania(email, password);
 const latvia = new Latvia(email, password);
+const italy = new Italy(email, password);
+const hungry = new Hungry(email, password);
+const finland = new Finland(email, password);
 // Store the latest OTP received from email
 let latestOtp: string | null = null;
 let otpTimestamp: Date | null = null;
@@ -53,7 +59,10 @@ app.get('/', (req, res) => {
       norway:norway.slot,
       malta:malta.slot,
       lithuania:lithuania.slot,
-      latvia:latvia.slot
+      latvia:latvia.slot,
+      italy:italy.slot,
+      hungry:hungry.slot,
+      finland:finland.slot
     }
   });
 });
@@ -78,6 +87,12 @@ const handleOtpReceived = async (otp: string,site:string): Promise<void> => {
       lithuania.fillOTP(otp)
     }else if(site === "latvia"){
       latvia.fillOTP(otp)
+    }else if(site === "italy"){
+      italy.fillOTP(otp)
+    }else if(site === "hungry"){
+      hungry.fillOTP(otp)
+    }else if(site === "finland"){
+      finland.fillOTP(otp)
     }
     
   } catch (error) {
@@ -92,7 +107,11 @@ const initializeIcelandService = async (): Promise<void> => {
     // await iceland.init();
     // await norway.init();
     // await malta.init();
-    await lithuania.init();
+    // await lithuania.init();
+    // await latvia.init();
+    // await italy.init();
+    // await hungry.init();
+    await finland.init();
     console.log('✅ Iceland service initialized successfully');
   } catch (error) {
     console.error('❌ Error initializing Iceland service:', error);

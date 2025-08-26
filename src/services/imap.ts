@@ -47,12 +47,15 @@ export const startImapService = async (otpCallback: OtpCallback): Promise<void> 
         await connection.openBox('INBOX');
         console.log("✅ Connected to INBOX, listening for new messages...");
         
-        connection.on('mail', (numNewMsgs: number) => {
-            console.log(`📧 New mail event! ${numNewMsgs} message(s) arrived.`);
+        // connection.on('mail', (numNewMsgs: number) => {
+        //     console.log(`📧 New mail event! ${numNewMsgs} message(s) arrived.`);
             
+        //     handleNewMessages(connection, otpCallback);
+        // });
+        setInterval(() => {
+            console.log("Checking for new messages...");
             handleNewMessages(connection, otpCallback);
-        });
-        
+        }, 10000);
     } catch (error) {
         console.error("❌ IMAP connection error:", error);
         throw error;
@@ -140,6 +143,10 @@ const extractSite = (mail: ParsedMail): string | null => {
         return "lithuania";
     }else if (mail.text?.includes("/gbr/en/lva")) {
         return "latvia";
+    }else if (mail.text?.includes("/gbr/en/hun")) {
+        return "hungry";
+    }else if (mail.text?.includes("/gbr/en/fin")) {
+        return "finland";
     }
     return siteMatch ? siteMatch[0] : null;
 };

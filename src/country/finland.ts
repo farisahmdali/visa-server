@@ -1,7 +1,7 @@
 import { connect, type PageWithCursor } from "puppeteer-real-browser";
 
 
- class Latvia {
+ class Finland {
     page: PageWithCursor | null;
     browser: any;
     capturedHeaders: any;
@@ -81,7 +81,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             });
         });
         
-        await this.page.goto("https://visa.vfsglobal.com/gbr/en/lva/login");
+        await this.page.goto("https://visa.vfsglobal.com/gbr/en/fin/login");
         console.log("Opened page");
          await this.getClearance(60000);
         console.log("Got clearance");
@@ -543,7 +543,6 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                                     return options.map(option => option.textContent?.trim() || '');
                                 });
                                 console.log("Available sub-category options:", availableSubOptions);
-                                this.page.click('mat-option:first-child');
                             }
                             
                         } catch (error) {
@@ -627,4 +626,4 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
     }
 }
 
-export default Latvia;
+export default Finland;
