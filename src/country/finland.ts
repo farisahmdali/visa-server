@@ -10,20 +10,26 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
     isFetching: boolean = false;
     currentCenter?:string ;
     status:"otp fill" | "init" | "complete" | "form fill"
-    email: string;
-    password: string;
-    constructor(email: string, password: string) {
+    email?: string;
+    password?: string;
+    constructor() {
         this.page = null;
         this.status = "complete";
-        this.email = email;
-        this.password = password;
+        
     }
 
-    async init() {
+    async init(email?: string, password?: string) {
         try{
 
             if(this.status !== "complete") {
                 return;
+
+        }
+        if(email){
+            this.email = email;
+        }
+        if(password){
+            this.password = password;
         }
         this.status = "init";
         const connectOptions: any = {
@@ -89,7 +95,9 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
             console.log("Network idle timeout, proceeding anyway");
         });
-        await this.fillLoginForm(this.email, this.password);
+        if(this.email && this.password){
+            await this.fillLoginForm(this.email, this.password);
+        }
     } catch (error) {
         console.error("❌ Error in init:", error);
         this.status = "complete";
@@ -245,6 +253,29 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         if (!this.page) {
             throw new Error("Page not initialized");
         }
+        // Wait for Turnstile captcha to be completed
+        console.log("Checking for Turnstile captcha completion...");
+        
+        await this.page.waitForFunction(() => {
+            // Check specifically for Turnstile captcha
+            const turnstileIframe = document.querySelector('iframe[src*="turnstile"]');
+            if (turnstileIframe) {
+                const turnstileContainer = turnstileIframe.closest('[data-cf-turnstile-widget-id]');
+                if (turnstileContainer) {
+                    const isCompleted = turnstileContainer.querySelector('[data-cf-turnstile-response]') !== null ||
+                                      turnstileContainer.classList.contains('cf-turnstile-success') ||
+                                      turnstileContainer.hasAttribute('data-cf-turnstile-response');
+                    console.log("Turnstile captcha completion status:", isCompleted);
+                    return isCompleted;
+                }
+            }
+            
+            // If no Turnstile is found, return true to proceed
+            console.log("No Turnstile captcha detected, proceeding...");
+            return true;
+        }, { timeout: 120000 }); // Wait up to 2 minutes for Turnstile completion
+        
+        console.log("Turnstile captcha verified, proceeding with OTP input");
         await this.page.waitForSelector("#mat-input-3", { visible: true });
         await this.page.evaluate((otpValue) => {
             const emailEl = document.querySelector('#mat-input-3') as HTMLInputElement;
@@ -300,7 +331,9 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             await this.page.click('button[type="submit"], form button');
         }
         console.log("Clicked submit button");
-        await this.page.waitForNavigation({ waitUntil: "networkidle0", timeout: 15000 });
+         await this.page.waitForNavigation({ waitUntil: "networkidle0", timeout: 15000 }).catch(() => {
+            console.log("Navigation timeout, proceeding anyway");
+        })
         console.log("Navigation completed");
         this.getSlotsAvailable(); // Now use API endpoint with date parameter
     }
@@ -402,7 +435,9 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 console.log("Network idle timeout, proceeding anyway");
             })
             console.log("Waiting for dropdown to be available...");
-            await this.page.waitForSelector('body > app-root > div > main > div > app-eligibility-criteria > section > form > mat-card:nth-child(1) > form > div:nth-child(1) > mat-form-field > div.mat-mdc-text-field-wrapper.mdc-text-field.mdc-text-field--outlined.mdc-text-field--no-label', { visible: true, timeout: 10000 });
+             await this.page.waitForSelector('body > app-root > div > main > div > app-eligibility-criteria > section > form > mat-card:nth-child(1) > form > div:nth-child(1) > mat-form-field > div.mat-mdc-text-field-wrapper.mdc-text-field.mdc-text-field--outlined.mdc-text-field--no-label', { visible: true, timeout: 10000 }).catch(() => {
+                console.log("Dropdown not available, proceeding anyway");
+            })
         
         
             console.log("Clicking on Application Centre dropdown...");
@@ -569,7 +604,9 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 // Try to click the first option as fallback
                 if (availableOptions.length > 0) {
                     console.log("Clicking first option as fallback...");
-                    await this.page.click('mat-option:first-child');
+                    await this.page.click('mat-option:first-child').catch(() => {
+                                    console.log("Could not click first option, proceeding anyway");
+                                });
                 }
             }
             await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {

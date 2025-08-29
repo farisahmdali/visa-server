@@ -1,20 +1,22 @@
 import { connect, type PageWithCursor } from "puppeteer-real-browser";
 
 
- class Malta {
+ class Austria {
     page: PageWithCursor | null;
     browser: any;
     capturedHeaders: any;
     capturedRequestBody: any;
-    slot: any;
-    status:"otp fill" | "init" | "complete" | "form fill"
+    executablePath?: string;
+     slot: any;
+    isFetching: boolean = false;
     currentCenter?:string ;
+    status:"otp fill" | "init" | "complete" | "form fill"
     email?: string;
     password?: string;
-    constructor() {
+    constructor(executablePath?: string) {
         this.page = null;
         this.status = "complete";
-        
+
     }
 
     async init(email?: string, password?: string) {
@@ -30,7 +32,8 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         if(password){
             this.password = password;
         }
-            this.status = "init";
+        
+        this.status = "init";
         const connectOptions: any = {
             headless: false,
             args: [
@@ -46,7 +49,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             turnstile: true, // Keep turnstile automation enabled
             connectOption: {},
             disableXvfb: false,
-            ignoreAllFlags: false,
+            ignoreAllFlags: false
         };
         const connection = await connect(connectOptions);
         this.page = connection.page;
@@ -86,9 +89,9 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             });
         });
         
-        await this.page.goto("https://visa.vfsglobal.com/gbr/en/mlt/login");
+        await this.page.goto("https://visa.vfsglobal.com/gbr/en/aut/login");
         console.log("Opened page");
-        const session = await this.getClearance(60000);
+         await this.getClearance(60000);
         console.log("Got clearance");
         console.log("Waiting for network to be idle");
         await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
@@ -155,7 +158,6 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 (window as any).allowCookieInteraction = true;
             });
             
-            await this.delay(500); // Small delay to ensure flag is set
             
             // Use evaluate to click the button to avoid focus issues
             await this.page.evaluate(() => {
@@ -176,7 +178,6 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 (window as any).allowCookieInteraction = false;
             });
             
-            await this.delay(2000);
             console.log("Cookie banner handled successfully with controlled interaction");
         } catch (e) {
             console.log("No cookie banner found or already accepted");
@@ -185,7 +186,6 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 (window as any).allowCookieInteraction = false;
             });
         }
-        await this.delay(10000);
         console.log("Waiting for email field");
         await this.page.waitForSelector("#email", { visible: true, timeout: 10000 });
         await this.page.evaluate((emailValue) => {
@@ -310,7 +310,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             await this.page.click('button[type="submit"], form button');
         }
         console.log("Clicked submit button");
-         await this.page.waitForNavigation({ waitUntil: "networkidle0", timeout: 15000 }).catch(() => {
+        await this.page.waitForNavigation({ waitUntil: "networkidle0", timeout: 15000 }).catch(() => {
             console.log("Navigation timeout, proceeding anyway");
         })
         console.log("Navigation completed");
@@ -332,12 +332,12 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 const method = response.request().method();
                 const status = response.status();
                 const request = response.request();
-                console.log("🎯 API Call Detected!");
-                console.log("URL:", url);
-                console.log("Method:", method);
-                console.log("Status:", status);
                 if (url.includes('CheckIsSlotAvailable')) {
-        
+                    
+                    console.log("🎯 API Call Detected!");
+                    console.log("URL:", url);
+                    console.log("Method:", method);
+                    console.log("Status:", status);
         
                     // Capture headers and request body for later use
                     if (method === 'POST' && status >= 200 && status < 400) {
@@ -384,14 +384,15 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                                 } else {
                                     this.slot = responseData;
                                 }
+                               
                             } else {
                                 // Fallback to text
                                 const responseText = await response.text();
                                 console.log("📄 API Response (Text):");
                                 console.log(responseText);
-                                this.slot = responseText;
                             }
                            
+
                         } catch (error) {
                             console.log("⚠️ Could not parse response body (likely preflight or empty response)");
                             console.log("Error details:", error instanceof Error ? error.message : 'Unknown error');
@@ -413,7 +414,9 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 console.log("Network idle timeout, proceeding anyway");
             })
             console.log("Waiting for dropdown to be available...");
-            await this.page.waitForSelector('mat-select[formcontrolname="centerCode"]', { visible: true, timeout: 10000 });
+            await this.page.waitForSelector('body > app-root > div > main > div > app-eligibility-criteria > section > form > mat-card:nth-child(1) > form > div:nth-child(1) > mat-form-field > div.mat-mdc-text-field-wrapper.mdc-text-field.mdc-text-field--outlined.mdc-text-field--no-label', { visible: true, timeout: 10000 }).catch(() => {
+                console.log("Dropdown not available, proceeding anyway");
+            })
         
         
             console.log("Clicking on Application Centre dropdown...");
@@ -447,70 +450,150 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 }
             }
         
-            await this.delay(1000);
         
-        
-            // Try multiple approaches to find and click the Iceland option
-            const options = await this.page.evaluate(() => {
-                return Array.from(document.querySelectorAll('mat-option')).map(option => option.textContent?.trim() || '');
-            });
 
-            for(let i = 0; i < options.length; i++) {
-                this.currentCenter = options[i];
-                console.log("Current center:", this.currentCenter);
-                const optionSelected = await this.page.evaluate((index) => {
-                    // Look for options containing "Iceland" and "London"
+            console.log("Looking for first option in dropdown...");
+        // Select the first available option
+         // Get options for logging outside of evaluate
+         const options = await this.page.evaluate(() => {
+            return Array.from(document.querySelectorAll('mat-option')).map(option => option.textContent?.trim() || '');
+        });
+        console.log("Found options:", options);
+        for(let i = 0; i < options.length; i++) {
+            this.currentCenter = options[i];
+            const optionSelected = await this.page.evaluate((index) => {
                 const options = Array.from(document.querySelectorAll('mat-option'));
-                const option = options[index];
-                console.log("Option:", option);
-                    const text = option.textContent?.trim() || '';
-                    console.log("Found option:", text);
-        
-                        console.log("Found Iceland option:", text);
+                if (options.length > index) {
+                    const option = options[index];
+                    if (option) {
+                        const text = option.textContent?.trim() || '';
+                        console.log("Selecting option:", text);
                         (option as HTMLElement).click();
                         return true;
-                
-              
-                
-            },i);
+                    }
+                }
+                return false;
+            }, i);
+        
+       
         
             if (optionSelected) {
-                console.log("✅ Successfully selected Iceland option");
+                console.log("✅ Successfully selected application center option");
         
-                // Wait a bit for any potential API calls triggered by the selection
-                await this.delay(3000);
-                
-                console.log("Waiting for any additional form changes or API calls...");
-                
+               
+        
+                console.log("Waiting for appointment category dropdown to become available...");
+                await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
+                    console.log("Network idle timeout, proceeding anyway");
+                })
+        
                 // Check if the next dropdown (appointment category) becomes available
                 try {
                     await this.page.waitForSelector('mat-select[formcontrolname="selectedSubvisaCategory"]:not(.mat-mdc-select-disabled)', {
                         visible: true,
-                        timeout: 5000
+                        timeout: 10000
                     });
-                    console.log("✅ Next dropdown became available - API call likely completed");
+                    console.log("✅ Appointment category dropdown became available");
+                    
+                    // Click on appointment category dropdown
+                    console.log("Clicking on appointment category dropdown...");
+                    await this.page.click('mat-select[formcontrolname="selectedSubvisaCategory"]');
+                    const subVisaCategoryOptions = await this.page.evaluate(() => {
+                        return Array.from(document.querySelectorAll('mat-option')).map(option => option.textContent?.trim() || '');
+                    });
+                    if(subVisaCategoryOptions.length > 1) {
+                        // Select option with keyword "schengen"
+                         await this.page.evaluate(() => {
+                            const options = Array.from(document.querySelectorAll('mat-option'));
+                            for (const option of options) {
+                                const text = option.textContent?.toLowerCase().trim() || '';
+                                if (text.includes('to')) {
+                                    console.log("Selecting schengen option:", text);
+                                    (option as HTMLElement).click();
+                                    return true;
+                                }
+                            }
+                            return false;
+                        });
+                    }else{
+                        await this.page.click('mat-option:first-child').catch(() => {
+                                    console.log("Could not click first option, proceeding anyway");
+                                });
+
+                    }
+                    
+                        
+                        // Wait for sub-category dropdown to become available
+                        console.log("Waiting for sub-category dropdown to become available...");
+                        await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
+                            console.log("Network idle timeout, proceeding anyway");
+                        })
+                        try {
+                            await this.page.waitForSelector('mat-select[formcontrolname="visaCategoryCode"]:not(.mat-mdc-select-disabled)', {
+                                visible: true,
+                                timeout: 10000
+                            });
+                            console.log("✅ Sub-category dropdown became available");
+                            
+                            // Click on sub-category dropdown
+                            console.log("Clicking on sub-category dropdown...");
+                            await this.page.click('mat-select[formcontrolname="visaCategoryCode"]');
+                          
+                            
+                            // Select option with keyword "tourist"
+                            const touristSelected = await this.page.evaluate(() => {
+                                const options = Array.from(document.querySelectorAll('mat-option'));
+                                for (const option of options) {
+                                    const text = option.textContent?.toLowerCase().trim() || '';
+                                    if (text.includes('tourism') || text.includes('other')) {
+                                        console.log("Selecting tourist option:", text);
+                                        (option as HTMLElement).click();
+                                        return true;
+                                    }
+                                }
+                                return false;
+                            });
+                            
+                            if (touristSelected) {
+                                console.log("✅ Successfully selected tourist option");
+                                
+                            } else {
+                                console.log("❌ Could not find tourist option in sub-category");
+                                // Log available options for debugging
+                                const availableSubOptions = await this.page.evaluate(() => {
+                                    const options = Array.from(document.querySelectorAll('mat-option'));
+                                    return options.map(option => option.textContent?.trim() || '');
+                                });
+                                console.log("Available sub-category options:", availableSubOptions);
+                            }
+                            
+                        } catch (error) {
+                            console.log("⚠️ Sub-category dropdown didn't become available");
+                        }
+                        
+                  
+                    
                 } catch (error) {
-                    console.log("⚠️  Next dropdown didn't become available immediately");
+                    console.log("⚠️ Appointment category dropdown didn't become available");
                 }
-                
+        
             } else {
-                console.log("❌ Could not find Iceland option. Available options:");
+                console.log("❌ Could not find first option. Available options:");
         
                 // Log all available options for debugging
                 const availableOptions = await this.page.evaluate(() => {
                     const options = Array.from(document.querySelectorAll('mat-option'));
                     return options.map(option => option.textContent?.trim() || '');
                 });
-                
+        
                 console.log(availableOptions);
-                
+        
                 // Try to click the first option as fallback
                 if (availableOptions.length > 0) {
                     console.log("Clicking first option as fallback...");
                     await this.page.click('mat-option:first-child').catch(() => {
                                     console.log("Could not click first option, proceeding anyway");
                                 });
-                    await this.delay(3000);
                 }
             }
             await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
@@ -549,9 +632,11 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 }
             }
         }
-        this.page.close();
-            console.log("✅ Dropdown selection completed");
-            
+            console.log("✅ Form selection process completed");
+            if(this.page) {
+                this.page.close();
+            }
+        
             this.status = "complete";
         } catch (error) {
             console.error("❌ Error in getSlotsAvailable:", error);
@@ -563,4 +648,4 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
     }
 }
 
-export default Malta;
+export default Austria;

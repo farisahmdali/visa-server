@@ -26,134 +26,298 @@ interface ImapMessage {
 }
 
 // Callback function type for OTP handling
-type OtpCallback = (otp: string,site:string) => void | Promise<void>;
+type OtpCallback = (otp: string, site: string) => void | Promise<void>;
 
-const config: ImapConfig = {
-    imap: {
-        user: process.env.IMAP_USER || 'farisahmdali@gmail.com',
-        password: process.env.IMAP_PASSWORD || 'lfdz ilsv vees hwhc', // app password
-        host: process.env.IMAP_HOST || 'imap.gmail.com',
-        port: Number(process.env.IMAP_PORT) || 993,
-        tls: true,
-        tlsOptions: { rejectUnauthorized: false }
+export class ImapService {
+    private config: ImapConfig;
+    private connection: any;
+    private otpCallback: OtpCallback | null = null;
+    private isConnected: boolean = false;
+    private checkInterval: NodeJS.Timeout | null = null;
+    private checkIntervalMs: number = 10000; // 10 seconds
+
+    constructor(email:string,password:string) {
+        this.config = {
+            imap: {
+                user: email,
+                password:password, // app password
+                host: process.env.IMAP_HOST || 'imap.gmail.com',
+                port: Number(process.env.IMAP_PORT) || 993,
+                tls: true,
+                tlsOptions: { rejectUnauthorized: false }
+            }
+        };
     }
-};
 
-// Main IMAP service function
-export const startImapService = async (otpCallback: OtpCallback): Promise<void> => {
-    try {
-        const connection = await imaps.connect(config);
+    /**
+     * Start the IMAP service
+     * @param otpCallback - Callback function to handle received OTPs
+     */
+    public async start(otpCallback: OtpCallback): Promise<void> {
+        try {
+            this.otpCallback = otpCallback;
+            await this.connect();
+            await this.startMessageChecking();
+            console.log("✅ IMAP service started successfully");
+        } catch (error) {
+            console.error("❌ Failed to start IMAP service:", error);
+            throw error;
+        }
+    }
+
+    /**
+     * Stop the IMAP service
+     */
+    public stop(): void {
+        if (this.checkInterval) {
+            clearInterval(this.checkInterval);
+            this.checkInterval = null;
+        }
         
-        await connection.openBox('INBOX');
-        console.log("✅ Connected to INBOX, listening for new messages...");
+        if (this.connection && this.isConnected) {
+            this.connection.end();
+            this.isConnected = false;
+        }
         
-        // connection.on('mail', (numNewMsgs: number) => {
-        //     console.log(`📧 New mail event! ${numNewMsgs} message(s) arrived.`);
+        console.log("🛑 IMAP service stopped");
+    }
+
+    /**
+     * Get service status
+     */
+    public getStatus(): { isConnected: boolean; isChecking: boolean } {
+        return {
+            isConnected: this.isConnected,
+            isChecking: this.checkInterval !== null
+        };
+    }
+
+    /**
+     * Update configuration
+     * @param newConfig - New IMAP configuration
+     */
+    public updateConfig(newConfig: Partial<ImapConfig>): void {
+        this.config = { ...this.config, ...newConfig };
+        console.log("⚙️ IMAP configuration updated");
+    }
+
+    /**
+     * Set message check interval
+     * @param intervalMs - Interval in milliseconds
+     */
+    public setCheckInterval(intervalMs: number): void {
+        if (this.checkInterval) {
+            clearInterval(this.checkInterval);
+        }
+        
+        this.checkIntervalMs = intervalMs;
+        
+        if (this.isConnected) {
+            this.startMessageChecking();
+        }
+        
+        console.log(`⏱️ Message check interval updated to ${intervalMs}ms`);
+    }
+
+    /**
+     * Connect to IMAP server
+     */
+    private async connect(): Promise<void> {
+        try {
+            this.connection = await imaps.connect(this.config);
+            await this.connection.openBox('INBOX');
+            this.isConnected = true;
+            console.log("✅ Connected to INBOX successfully");
+        } catch (error) {
+            this.isConnected = false;
+            console.error("❌ IMAP connection error:", error);
+            throw error;
+        }
+    }
+
+    /**
+     * Start periodic message checking
+     */
+    private async startMessageChecking(): Promise<void> {
+        if (this.checkInterval) {
+            clearInterval(this.checkInterval);
+        }
+
+        this.checkInterval = setInterval(async () => {
+            if (this.isConnected) {
+                console.log("🔍 Checking for new messages...");
+                await this.handleNewMessages();
+            }
+        }, this.checkIntervalMs);
+
+        console.log(`⏰ Message checking started with ${this.checkIntervalMs}ms interval`);
+    }
+
+    /**
+     * Handle new messages
+     */
+    private async handleNewMessages(): Promise<void> {
+        try {
+            if (!this.connection || !this.isConnected) {
+                console.warn("⚠️ No active IMAP connection");
+                return;
+            }
+
+            const messages: ImapMessage[] = await this.connection.search(
+                ['UNSEEN', ['FROM', 'donotreply@vfshelpline.com']], 
+                { bodies: [''], markSeen: true }
+            );
+            if(messages.length === 0){
+                return
+            }
+            console.log(`🔍 Found ${messages.length} new message(s)`);
             
-        //     handleNewMessages(connection, otpCallback);
-        // });
-        setInterval(() => {
-            console.log("Checking for new messages...");
-            handleNewMessages(connection, otpCallback);
-        }, 10000);
-    } catch (error) {
-        console.error("❌ IMAP connection error:", error);
-        throw error;
+            for (const [index, message] of messages.entries()) {
+                await this.processMessage(message, index);
+            }
+            
+        } catch (error: any) {
+            console.error('❌ Error searching new messages:', error);
+            // Try to reconnect if connection is lost
+            if (error.message?.includes('connection')) {
+                await this.reconnect();
+            }
+        }
     }
-};
 
-// Handle new messages
-const handleNewMessages = async (connection: any, otpCallback: OtpCallback): Promise<void> => {
-    try {
-        const messages: ImapMessage[] = await connection.search(
-            ['UNSEEN', ['FROM', 'donotreply@vfshelpline.com']], 
-            { bodies: [''], markSeen: true }
-        );
+    /**
+     * Process individual message
+     */
+    private async processMessage(item: ImapMessage, index: number): Promise<void> {
+        try {
+            // Gmail's IMAP can store body in 'attributes' -> 'struct' -> 'parts', so we join all
+            const allParts: string = item.parts.map((part: MessagePart) => part.body).join('');
+            
+            // Parse the complete raw message
+            const mail: ParsedMail = await simpleParser(allParts);
+            
+            console.log(`\n--- New Message ${index + 1} ---`);
+            console.log("From:", mail.from?.text || 'Unknown');
+            console.log("Subject:", mail.subject || 'No subject');
+            console.log("Date:", mail.date || 'Unknown date');
+            console.log("Text Body:", mail.text || 'No plain text content');
+            console.log("HTML Body:", mail.html || 'No HTML content');
+            
+            // Extract OTP and site from message
+            const otp = this.extractOtp(mail);
+            const site = this.extractSite(mail);
+            
+            if (otp && this.otpCallback) {
+                console.log("🔑 OTP Found:", otp, "for site:", site);
+                // Call the provided callback function with the OTP
+                await this.otpCallback(otp, site || "");
+            }
+            
+            console.log("--- End New Message ---\n");
+            
+        } catch (error) {
+            console.error(`❌ Error processing new message ${index + 1}:`, error);
+        }
+    }
+
+    /**
+     * Extract OTP from parsed mail
+     */
+    private extractOtp(mail: ParsedMail): string | null {
+        let otpMatch: RegExpMatchArray | null = null;
         
-        console.log(`🔍 Found ${messages.length} new message(s)`);
-        
-        for (const [index, message] of messages.entries()) {
-            await processMessage(message, index, otpCallback);
+        // Try to find OTP in text content first
+        if (mail.text) {
+            otpMatch = mail.text.match(/\b\d{6}\b/);
         }
         
-    } catch (error) {
-        console.error('❌ Error searching new messages:', error);
-    }
-};
-
-// Process individual message
-const processMessage = async (item: ImapMessage, index: number, otpCallback: OtpCallback): Promise<void> => {
-    try {
-        // Gmail's IMAP can store body in 'attributes' -> 'struct' -> 'parts', so we join all
-        const allParts: string = item.parts.map((part: MessagePart) => part.body).join('');
-        
-        // Parse the complete raw message
-        const mail: ParsedMail = await simpleParser(allParts);
-        
-        console.log(`\n--- New Message ${index + 1} ---`);
-        console.log("From:", mail.from?.text || 'Unknown');
-        console.log("Subject:", mail.subject || 'No subject');
-        console.log("Date:", mail.date || 'Unknown date');
-        console.log("Text Body:", mail.text || 'No plain text content');
-        console.log("HTML Body:", mail.html || 'No HTML content');
-        
-        // Extract OTP from message
-        const otp = extractOtp(mail);
-        const site = extractSite(mail);
-        
-        if (otp) {
-            console.log("🔑 OTP Found:", otp,site);
-            // Call the provided callback function with the OTP
-            await otpCallback(otp,site || "");
+        // Fallback to HTML content
+        if (!otpMatch && mail.html) {
+            otpMatch = mail.html.match(/\b\d{6}\b/);
         }
         
-        console.log("--- End New Message ---\n");
-        
-    } catch (error) {
-        console.error(`❌ Error processing new message ${index + 1}:`, error);
+        return otpMatch ? otpMatch[0] : null;
     }
-};
 
-// Extract OTP from parsed mail
-const extractOtp = (mail: ParsedMail): string | null => {
-    let otpMatch: RegExpMatchArray | null = null;
-    
-    // Try to find OTP in text content first
-    if (mail.text) {
-        otpMatch = mail.text.match(/\b\d{6}\b/);
-    }
-    
-    // Fallback to HTML content
-    if (!otpMatch && mail.html) {
-        otpMatch = mail.html.match(/\b\d{6}\b/);
-    }
-    
-    return otpMatch ? otpMatch[0] : null;
-};
+    /**
+     * Extract site information from parsed mail
+     */
+    private extractSite(mail: ParsedMail): string | null {
+        if (!mail.text) return null;
 
-const extractSite = (mail: ParsedMail): string | null => {
-    let siteMatch: RegExpMatchArray | null = null;
-    if (mail.text?.includes("/gbr/en/isl")) {
-        return "iceland";
-    }else if (mail.text?.includes("/gbr/en/nor")) {
-        return "norway";
-    }else if (mail.text?.includes("/gbr/en/mlt")) {
-        return "malta";
-    }else if (mail.text?.includes("/gbr/en/ltu")) {
-        return "lithuania";
-    }else if (mail.text?.includes("/gbr/en/lva")) {
-        return "latvia";
-    }else if (mail.text?.includes("/gbr/en/hun")) {
-        return "hungry";
-    }else if (mail.text?.includes("/gbr/en/fin")) {
-        return "finland";
-    }else if (mail.text?.includes("/gbr/en/est")) {
-        return "estonia";
-    }else if (mail.text?.includes("/gbr/en/cze")) {
-        return "czech";
-    }
-    return siteMatch ? siteMatch[0] : null;
-};
+        const siteMappings: { [key: string]: string } = {
+            '/gbr/en/isl': 'iceland',
+            '/gbr/en/nor': 'norway',
+            '/gbr/en/mlt': 'malta',
+            '/gbr/en/ltu': 'lithuania',
+            '/gbr/en/lva': 'latvia',
+            '/gbr/en/hun': 'hungry',
+            '/gbr/en/fin': 'finland',
+            '/gbr/en/est': 'estonia',
+            '/gbr/en/cze': 'czech',
+            '/gbr/en/hrv': 'croatia',
+            '/gbr/en/aut': 'austria'
+        };
 
-// Export the service for external initialization
-// Usage: startImapService((otp) => console.log('Received OTP:', otp));
+        for (const [pattern, site] of Object.entries(siteMappings)) {
+            if (mail.text.includes(pattern)) {
+                return site;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Attempt to reconnect to IMAP server
+     */
+    private async reconnect(): Promise<void> {
+        try {
+            console.log("🔄 Attempting to reconnect to IMAP server...");
+            this.isConnected = false;
+            
+            if (this.connection) {
+                this.connection.end();
+            }
+            
+            await this.connect();
+            console.log("✅ Reconnected successfully");
+        } catch (error) {
+            console.error("❌ Reconnection failed:", error);
+            // Schedule another reconnection attempt
+            setTimeout(() => this.reconnect(), 30000); // Try again in 30 seconds
+        }
+    }
+
+    /**
+     * Test connection
+     */
+    public async testConnection(): Promise<boolean> {
+        try {
+            if (!this.connection || !this.isConnected) {
+                await this.connect();
+            }
+            
+            // Try to list a few messages to test connection
+            await this.connection.search(['ALL'], { limit: 1 });
+            return true;
+        } catch (error) {
+            console.error("❌ Connection test failed:", error);
+            return false;
+        }
+    }
+
+    /**
+     * Get current configuration
+     */
+    public getConfig(): ImapConfig {
+        return { ...this.config };
+    }
+}
+
+// Create a singleton instance
+
+
+// Export the singleton instance and the class
+export default  ImapService
+

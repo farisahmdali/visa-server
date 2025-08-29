@@ -8,22 +8,28 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
     capturedRequestBody: any;
     slot: any;
     status:"otp fill" | "init" | "complete" | "form fill"
-    email: string;
-    password: string;
     currentCenter?:string ;
-    constructor(email: string, password: string) {
+    email?: string;
+    password?: string;
+    constructor() {
         this.page = null;
         this.status = "complete";
-        this.email = email;
-        this.password = password;
+        
     }
 
-    async init() {
+    async init(email?: string, password?: string) {
         try{
 
             if(this.status !== "complete") {
                 return;
-            }
+
+        }
+        if(email){
+            this.email = email;
+        }
+        if(password){
+            this.password = password;
+        }
             this.status = "init";
         const connectOptions: any = {
             headless: false,
@@ -34,19 +40,21 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 '--disable-background-timer-throttling',
                 '--disable-renderer-backgrounding',
                 '--disable-backgrounding-occluded-windows',
-                '--disable-ipc-flooding-protection'
+                '--disable-ipc-flooding-protection',
+                `--user-data-dir=C:/temp/chrome-profile-${Date.now()}`
             ],
             customConfig: {},
             turnstile: true, // Keep turnstile automation enabled
             connectOption: {},
             disableXvfb: false,
-            ignoreAllFlags: false,
+            ignoreAllFlags: false
         };
-        const connection = await connect(connectOptions);
+        const connection = await connect({...connectOptions,});
         this.page = connection.page;
         this.browser = connection.browser;
         this.page.setDefaultTimeout(600000);
-        
+        // await this.page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) ...");
+        // await this.page.setExtraHTTPHeaders({ Referer: "https://www.google.com" });
         // Disable automatic interactions and events
         await this.page.evaluateOnNewDocument(() => {
             // Flag to control when cookie interactions are allowed
@@ -88,7 +96,9 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
             console.log("Network idle timeout, proceeding anyway");
         });
-        await this.fillLoginForm(this.email, this.password);
+        if(this.email && this.password){
+            await this.fillLoginForm(this.email, this.password);
+        }
     } catch (error) {
         console.error("❌ Error in init:", error);
         this.status = "complete";
@@ -300,7 +310,9 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             await this.page.click('button[type="submit"], form button');
         }
         console.log("Clicked submit button");
-        await this.page.waitForNavigation({ waitUntil: "networkidle0", timeout: 15000 });
+         await this.page.waitForNavigation({ waitUntil: "networkidle0", timeout: 15000 }).catch(() => {
+            console.log("Navigation timeout, proceeding anyway");
+        })
         console.log("Navigation completed");
         this.getSlotsAvailable(); // Now use API endpoint with date parameter
     }
@@ -444,7 +456,6 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
 
             for(let i = 0; i < options.length; i++) {
                 this.currentCenter = options[i];
-                console.log("Current center:", this.currentCenter);
                 const optionSelected = await this.page.evaluate((index) => {
                     // Look for options containing "Iceland" and "London"
                 const options = Array.from(document.querySelectorAll('mat-option'));
@@ -492,7 +503,9 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 // Try to click the first option as fallback
                 if (availableOptions.length > 0) {
                     console.log("Clicking first option as fallback...");
-                    await this.page.click('mat-option:first-child');
+                    await this.page.click('mat-option:first-child').catch(() => {
+                                    console.log("Could not click first option, proceeding anyway");
+                                });
                 }
             }
             await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {

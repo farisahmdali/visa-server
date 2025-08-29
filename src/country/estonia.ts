@@ -10,20 +10,26 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
     isFetching: boolean = false;
     currentCenter?:string ;
     status:"otp fill" | "init" | "complete" | "form fill"
-    email: string;
-    password: string;
-    constructor(email: string, password: string) {
+    email?: string;
+    password?: string;
+    constructor() {
         this.page = null;
         this.status = "complete";
-        this.email = email;
-        this.password = password;
+        
     }
 
-    async init() {
+    async init(email?: string, password?: string) {
         try{
 
             if(this.status !== "complete") {
                 return;
+
+        }
+        if(email){
+            this.email = email;
+        }
+        if(password){
+            this.password = password;
         }
         this.status = "init";
         const connectOptions: any = {
@@ -89,7 +95,9 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
             console.log("Network idle timeout, proceeding anyway");
         });
-        await this.fillLoginForm(this.email, this.password);
+        if(this.email && this.password){
+            await this.fillLoginForm(this.email, this.password);
+        }
     } catch (error) {
         console.error("❌ Error in init:", error);
         this.status = "complete";
@@ -300,7 +308,9 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             await this.page.click('button[type="submit"], form button');
         }
         console.log("Clicked submit button");
-        await this.page.waitForNavigation({ waitUntil: "networkidle0", timeout: 15000 });
+         await this.page.waitForNavigation({ waitUntil: "networkidle0", timeout: 15000 }).catch(() => {
+            console.log("Navigation timeout, proceeding anyway");
+        })
         console.log("Navigation completed");
         this.getSlotsAvailable(); // Now use API endpoint with date parameter
     }
@@ -402,12 +412,14 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 console.log("Network idle timeout, proceeding anyway");
             })
             console.log("Waiting for dropdown to be available...");
-            await this.page.waitForSelector('body > app-root > div > main > div > app-eligibility-criteria > section > form > mat-card:nth-child(1) > form > div:nth-child(1) > mat-form-field > div.mat-mdc-text-field-wrapper.mdc-text-field.mdc-text-field--outlined.mdc-text-field--no-label', { visible: true, timeout: 10000 });
+             await this.page.waitForSelector('body > app-root > div > main > div > app-eligibility-criteria > section > form > mat-card:nth-child(1) > form > div:nth-child(1) > mat-form-field > div.mat-mdc-text-field-wrapper.mdc-text-field.mdc-text-field--outlined.mdc-text-field--no-label', { visible: true, timeout: 10000 }).catch(() => {
+                console.log("Dropdown not available, proceeding anyway");
+            })
         
         
             console.log("Clicking on Application Centre dropdown...");
             // Try clicking by the mat-select class first
-            await this.page.click('mat-select[formcontrolname="centerCode"]');
+            await this.page.click('mat-select[formcontrolname="centerCode"]')
             
             // Verify the dropdown was clicked by checking if it's expanded
             const isDropdownOpen = await this.page.evaluate(() => {
@@ -579,7 +591,9 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 // Try to click the first option as fallback
                 if (availableOptions.length > 0) {
                     console.log("Clicking first option as fallback...");
-                    await this.page.click('mat-option:first-child');
+                    await this.page.click('mat-option:first-child').catch(() => {
+                                    console.log("Could not click first option, proceeding anyway");
+                                });
                 }
             }
             await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
