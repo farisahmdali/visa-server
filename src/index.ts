@@ -1,6 +1,6 @@
 // Note: Install required packages with: npm install node-cron @types/node-cron
 import express from 'express';
-import mongoose from 'mongoose';
+// import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import * as cron from 'node-cron';
@@ -59,7 +59,7 @@ app.use(express.urlencoded({ extended: true }));
 // MongoDB connection
 const connectDB = async () => {
   try {
-    await mongoose.connect(MONGODB_URI);
+    // await mongoose.connect(MONGODB_URI);
     console.log('✅ MongoDB connected successfully');
   } catch (error) {
     console.error('❌ MongoDB connection error:', error);
@@ -330,13 +330,13 @@ const startServer = async () => {
 // Handle graceful shutdown
 process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down gracefully...');
-  await mongoose.connection.close();
+  // await mongoose.connection.close();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
   console.log('\n🛑 Shutting down gracefully...');
-  await mongoose.connection.close();
+  // await mongoose.connection.close();
   process.exit(0);
 });
 
