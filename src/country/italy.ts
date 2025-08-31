@@ -299,7 +299,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             }
             
             return false;
-        }, { timeout: 60000 }); // Wait up to 60 seconds for turnstile completion
+        }, { timeout: 300000 }); // Wait up to 60 seconds for turnstile completion
         
         console.log("Turnstile completed, proceeding with submit");
         

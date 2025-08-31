@@ -40,8 +40,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 '--disable-background-timer-throttling',
                 '--disable-renderer-backgrounding',
                 '--disable-backgrounding-occluded-windows',
-                '--disable-ipc-flooding-protection',
-                `--user-data-dir=C:/temp/chrome-profile-${Date.now()}`
+                '--disable-ipc-flooding-protection'
             ],
             customConfig: {},
             turnstile: true, // Keep turnstile automation enabled
@@ -287,7 +286,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             }
             
             return false;
-        }, { timeout: 60000 }); // Wait up to 60 seconds for turnstile completion
+        }, { timeout: 300000 }); // Wait up to 60 seconds for turnstile completion
         
         console.log("Turnstile completed, proceeding with submit");
         
