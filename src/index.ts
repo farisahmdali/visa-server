@@ -16,7 +16,7 @@ import Finland from './country/finland';
 import Estonia from './country/estonia';
 import Czech from './country/czech';
 import Croatia from './country/croatia';
-import ImapService from './services/imap';
+// import ImapService from './services/imap';
 import Austria from './country/austria';
 import { emails, passwords, vfsPass } from './configs/creds';
 
@@ -34,12 +34,12 @@ const index = 0
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/visa-server';
-// const iceland = new Iceland();
+const iceland = new Iceland();
 
 const norway = new Norway();
 const malta = new Malta();
 const lithuania = new Lithuania();
-const latvia = new Latvia();
+// const latvia = new Latvia();
 // const italy = new Italy();
 // const hungry = new Hungry();
 // const finland = new Finland();
@@ -73,11 +73,11 @@ app.get('/', (req, res) => {
     message: 'Welcome to Visa Server API',
     version: '1.0.0',
     data:{
-      // iceland:iceland.slot,
+      iceland:iceland.slot,
       norway:norway.slot,
       malta:malta.slot,
       lithuania:lithuania.slot,
-      latvia:latvia.slot,
+      // latvia:latvia.slot,
       // italy:italy.slot,
       // hungry:hungry.slot,
       // finland:finland.slot,
@@ -100,7 +100,7 @@ const handleOtpReceived = async (otp: string,site:string): Promise<void> => {
     console.log(`🔑 OTP received from email: ${otp}`);
     console.log(`📧 OTP stored and available at: http://localhost:${PORT}/otp`);
     if(site === "iceland"){
-      // iceland.fillOTP(otp)
+      iceland.fillOTP(otp)
     }else if(site === "norway"){
       norway.fillOTP(otp)
     }else if(site === "malta"){
@@ -108,7 +108,7 @@ const handleOtpReceived = async (otp: string,site:string): Promise<void> => {
     }else if(site === "lithuania"){
       lithuania.fillOTP(otp)
     }else if(site === "latvia"){
-      latvia.fillOTP(otp)
+      // latvia.fillOTP(otp)
     }else if(site === "italy"){
       // italy.fillOTP(otp)
     }else if(site === "hungry"){
@@ -170,11 +170,11 @@ const initializeCountryWithRetry = async (country: {name:string, instance:Icelan
 // Sequential initialization with delays and error handling
 const initializeCountriesSequentially = async (): Promise<void> => {
   const countries = [
-    // { instance: iceland, name: 'Iceland', index: 0 },
-    { instance: norway, name: 'Norway', index: 0 },
-    { instance: malta, name: 'Malta', index: 1 },
-    { instance: lithuania, name: 'Lithuania', index: 2 },
-    { instance: latvia, name: 'Latvia', index: 3 },
+    { instance: iceland, name: 'Iceland', index: 0 },
+    { instance: norway, name: 'Norway', index: 1 },
+    { instance: malta, name: 'Malta', index: 2 },
+    { instance: lithuania, name: 'Lithuania', index: 3 },
+    // { instance: latvia, name: 'Latvia', index: 3 },
     // { instance: italy, name: 'Italy', index: 5 },
     // { instance: hungry, name: 'Hungary', index: 6 },
     // { instance: finland, name: 'Finland', index: 7 },
@@ -210,11 +210,11 @@ const initializeCountriesSequentially = async (): Promise<void> => {
 // Alternative: Limited concurrent execution (use this for better performance if sequential is too slow)
 const initializeCountriesConcurrent = async (concurrencyLimit: number = 3): Promise<void> => {
   const countries = [
-    // { instance: iceland, name: 'Iceland', index: 0 },
-    { instance: norway, name: 'Norway', index: 0 },
-    { instance: malta, name: 'Malta', index: 1 },
-    { instance: lithuania, name: 'Lithuania', index: 2 },
-    { instance: latvia, name: 'Latvia', index: 3 },
+    { instance: iceland, name: 'Iceland', index: 0 },
+    { instance: norway, name: 'Norway', index: 1 },
+    { instance: malta, name: 'Malta', index: 2 },
+    { instance: lithuania, name: 'Lithuania', index: 3 },
+    // { instance: latvia, name: 'Latvia', index: 3 },
     // { instance: italy, name: 'Italy', index: 5 },
     // { instance: hungry, name: 'Hungary', index: 6 },
     // { instance: finland, name: 'Finland', index: 7 },
@@ -296,21 +296,25 @@ const startServer = async () => {
     
     // Start IMAP service with callback
     try {
-      const imapServices:ImapService[] = []
-      const promises = emails.map((email, i) => {
-        const imapService = new ImapService(email, passwords[i])
-        imapServices.push(imapService)
-        return imapService.start(handleOtpReceived)
-      })
+      // const imapServices:ImapService[] = []
+      // const promises = emails.map((email, i) => {
+      //   const imapService = new ImapService(email, passwords[i])
+      //   imapServices.push(imapService)
+      //   return imapService.start(handleOtpReceived)
+      // })
     
       // Wait for all to connect
-      await Promise.all(promises)
+      // await Promise.all(promises)
     
       console.log('📧 All IMAP services started successfully');
     } catch (imapError) {
       console.warn('⚠️ IMAP service failed to start:', imapError);
       console.warn('📧 Email monitoring will not be available');
     }
+
+    app.post("otp",(req,res)=>{
+      handleOtpReceived(req.body.otp as string,req.body.site as string);
+    })
     
     app.listen(PORT, () => {
       console.log(`🚀 Server is running on port ${PORT}`);
