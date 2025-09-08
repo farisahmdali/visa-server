@@ -39,14 +39,14 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/visa-s
 // const norway = new Norway();
 // const malta = new Malta();
 // const lithuania = new Lithuania();
-const latvia = new Latvia();
-const italy = new Italy();
-const hungry = new Hungry();
-const finland = new Finland();
-// const estonia = new Estonia();
-// const czech = new Czech();
-// const croatia = new Croatia();
-// const austria = new Austria();
+// const latvia = new Latvia();
+// const italy = new Italy();
+// const hungry = new Hungry();
+// const finland = new Finland();
+const estonia = new Estonia();
+const czech = new Czech();
+const croatia = new Croatia();
+const austria = new Austria();
 // Store the latest OTP received from email
 let latestOtp: string | null = null;
 let otpTimestamp: Date | null = null;
@@ -77,14 +77,14 @@ app.get('/', (req, res) => {
       // norway:norway.slot,
       // malta:malta.slot,
       // lithuania:lithuania.slot,
-      latvia:latvia.slot,
-      italy:italy.slot,
-      hungry:hungry.slot,
-      finland:finland.slot,
-      // estonia:estonia.slot,
-      // czech:czech.slot,
-      // croatia:croatia.slot,
-      // austria:austria.slot
+      // latvia:latvia.slot,
+      // italy:italy.slot,
+      // hungry:hungry.slot,
+      // finland:finland.slot,
+      estonia:estonia.slot,
+      czech:czech.slot,
+      croatia:croatia.slot,
+      austria:austria.slot
     }
   });
 });
@@ -108,21 +108,21 @@ const handleOtpReceived = async (otp: string,site:string): Promise<void> => {
     }else if(site === "lithuania"){
       // lithuania.fillOTP(otp)
     }else if(site === "latvia"){
-      latvia.fillOTP(otp)
+      // latvia.fillOTP(otp)
     }else if(site === "italy"){
-      italy.fillOTP(otp)
+      // italy.fillOTP(otp)
     }else if(site === "hungry"){
-      hungry.fillOTP(otp)
+      // hungry.fillOTP(otp)
     }else if(site === "finland"){
-      finland.fillOTP(otp)
+      // finland.fillOTP(otp)
     }else if(site === "estonia"){
-      // estonia.fillOTP(otp)
+      estonia.fillOTP(otp)
     }else if(site === "czech"){
-      // czech.fillOTP(otp)
+      czech.fillOTP(otp)
     }else if(site === "croatia"){
-      // croatia.fillOTP(otp)
+      croatia.fillOTP(otp)
     }else if(site === "austria"){
-      // austria.fillOTP(otp)
+      austria.fillOTP(otp)
     }
     
   } catch (error) {
@@ -174,14 +174,14 @@ const initializeCountriesSequentially = async (): Promise<void> => {
     // { instance: norway, name: 'Norway', index: 1 },
     // { instance: malta, name: 'Malta', index: 2 },
     // { instance: lithuania, name: 'Lithuania', index: 3 },
-    { instance: latvia, name: 'Latvia', index: 0 },
-    { instance: italy, name: 'Italy', index: 1 },
-    { instance: hungry, name: 'Hungary', index: 2 },
-    { instance: finland, name: 'Finland', index: 3 },
-    // { instance: estonia, name: 'Estonia', index: 8 },
-    // { instance: czech, name: 'Czech Republic', index: 9 },
-    // { instance: croatia, name: 'Croatia', index: 10 },
-    // { instance: austria, name: 'Austria', index: 11 }
+    // { instance: latvia, name: 'Latvia', index: 0 },
+    // { instance: italy, name: 'Italy', index: 1 },
+    // { instance: hungry, name: 'Hungary', index: 2 },
+    // { instance: finland, name: 'Finland', index: 3 },
+    { instance: estonia, name: 'Estonia', index: 0 },
+    { instance: czech, name: 'Czech Republic', index: 1 },
+    { instance: croatia, name: 'Croatia', index: 2 },
+    { instance: austria, name: 'Austria', index: 3 }
   ];
 
   const successfulCountries: string[] = [];
@@ -214,14 +214,14 @@ const initializeCountriesConcurrent = async (concurrencyLimit: number = 3): Prom
     // { instance: norway, name: 'Norway', index: 1 },
     // { instance: malta, name: 'Malta', index: 2 },
     // { instance: lithuania, name: 'Lithuania', index: 3 },
-    { instance: latvia, name: 'Latvia', index: 0 },
-    { instance: italy, name: 'Italy', index: 1 },
-    { instance: hungry, name: 'Hungary', index: 2 },
-    { instance: finland, name: 'Finland', index: 3 },
-    // { instance: estonia, name: 'Estonia', index: 8 },
-    // { instance: czech, name: 'Czech Republic', index: 9 },
-    // { instance: croatia, name: 'Croatia', index: 10 },
-    // { instance: austria, name: 'Austria', index: 11 }
+    // { instance: latvia, name: 'Latvia', index: 0 },
+    // { instance: italy, name: 'Italy', index: 1 },
+    // { instance: hungry, name: 'Hungary', index: 2 },
+    // { instance: finland, name: 'Finland', index: 3 },
+    { instance: estonia, name: 'Estonia', index: 0 },
+    { instance: czech, name: 'Czech Republic', index: 1 },
+    { instance: croatia, name: 'Croatia', index: 2 },
+    { instance: austria, name: 'Austria', index: 3 }
   ];
 
   // Process countries in batches
