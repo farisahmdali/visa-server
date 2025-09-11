@@ -30,7 +30,7 @@ const CONCURRENT_BATCH_SIZE = parseInt(process.env.CONCURRENT_BATCH_SIZE || '3')
 const DELAY_BETWEEN_COUNTRIES = parseInt(process.env.DELAY_BETWEEN_COUNTRIES || '8000');
 const DELAY_BETWEEN_BATCHES = parseInt(process.env.DELAY_BETWEEN_BATCHES || '15000');
 
-const domains = ["set1.vfs.farisshmdali.in","set2.vfs.farisshmdali.in","set3.vfs.farisshmdali.in"]
+const domains = ["set1.vfs.farisahmdali.in","set2.vfs.farisahmdali.in","set3.vfs.farisahmdali.in"]
 
 const index = 0
 
