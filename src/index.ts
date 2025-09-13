@@ -169,6 +169,7 @@ const initializeCountryWithRetry = async (country: {name:string, instance:Icelan
 
 // Sequential initialization with delays and error handling
 const initializeCountriesSequentially = async (): Promise<void> => {
+  try{
   const countries = [
     // { instance: iceland, name: 'Iceland', index: 0 },
     // { instance: norway, name: 'Norway', index: 1 },
@@ -186,7 +187,7 @@ const initializeCountriesSequentially = async (): Promise<void> => {
 
   const successfulCountries: string[] = [];
   const failedCountries: string[] = [];
-
+  
   for (const country of countries) {
     try {
       await initializeCountryWithRetry(country);
@@ -201,10 +202,13 @@ const initializeCountriesSequentially = async (): Promise<void> => {
       // Continue with next country even if current one fails
     }
   }
-
+  
   console.log(`📊 Initialization Summary:`);
   console.log(`✅ Successful: ${successfulCountries.length} countries - ${successfulCountries.join(', ')}`);
   console.log(`❌ Failed: ${failedCountries.length} countries - ${failedCountries.join(', ')}`);
+}catch(err){
+  console.error(err)
+}
 };
 
 // Alternative: Limited concurrent execution (use this for better performance if sequential is too slow)
