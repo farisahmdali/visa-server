@@ -121,7 +121,11 @@ app.get("/test",async(req,res)=>{
 const handleOtpReceived = async (otp: string,site:string): Promise<void> => {
   try {
     domains.map((x)=>{
-      axios.post(x+"/otp",{otp,site})
+      try{
+        axios.post(x+"/otp",{otp,site});
+      }catch(err){
+        console.log(err);
+      }
     })
   } catch (error) {
     console.error('❌ Error handling received OTP:', error);
