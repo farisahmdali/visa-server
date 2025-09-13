@@ -60,6 +60,11 @@ export class ImapService {
             this.otpCallback = otpCallback;
             await this.connectWithRetry();
             await this.startMessageChecking();
+            this.connection.imap.on('close', () => {
+                console.warn("⚠️ IMAP connection closed");
+                this.isConnected = false;
+                this.reconnect();
+            });
             console.log("✅ IMAP service started successfully");
         } catch (error) {
             console.error("❌ Failed to start IMAP service:", error);

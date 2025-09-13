@@ -30,7 +30,7 @@ const CONCURRENT_BATCH_SIZE = parseInt(process.env.CONCURRENT_BATCH_SIZE || '3')
 const DELAY_BETWEEN_COUNTRIES = parseInt(process.env.DELAY_BETWEEN_COUNTRIES || '8000');
 const DELAY_BETWEEN_BATCHES = parseInt(process.env.DELAY_BETWEEN_BATCHES || '15000');
 
-const domains = ["set1.vfs.farisahmdali.in","set2.vfs.farisahmdali.in","set3.vfs.farisahmdali.in"]
+const domains = ["http://set1.vfs.farisahmdali.in","http://set2.vfs.farisahmdali.in","http://set3.vfs.farisahmdali.in"]
 
 const index = 0
 
@@ -72,18 +72,43 @@ const connectDB = async () => {
 };
 
 app.get('/', async(req, res) => {
-  const set1 = await axios.get(domains[0])
-  const set2 = await axios.get(domains[1])
-  const set3 = await axios.get(domains[2])
-  res.status(200).json({ 
-    message: 'Welcome to Visa Server API',
-    version: '1.0.0',
-    data:{
-      ...set1,
-      ...set2,
-      ...set3
-    }
-  });
+  try {
+    // Make all requests concurrently for better performance
+    const [set1Response, set2Response, set3Response] = await Promise.allSettled([
+      axios.get(domains[0]),
+      axios.get(domains[1]),
+      axios.get(domains[2])
+    ]);
+
+    // Process responses and handle any failures
+    const responses = [set1Response, set2Response, set3Response];
+    const data: any = {};
+
+    responses.forEach((response, index) => {
+      if (response.status === 'fulfilled') {
+        data[`set${index + 1}`] = response.value.data;
+      } else {
+        const errorMsg = `Failed to fetch from ${domains[index]}: ${response.reason?.message || 'Unknown error'}`;
+        console.error(`❌ ${errorMsg}`);
+        data[`set${index + 1}`] = null;
+      }
+    });
+
+    // Return response with all data (including null values for failed requests)
+    res.status(200).json({ 
+      message: 'Welcome to Visa Server API',
+      version: '1.0.0',
+      data
+    });
+
+  } catch (error) {
+    console.error('❌ Unexpected error in root endpoint:', error);
+    res.status(500).json({
+      message: 'Internal Server Error',
+      version: '1.0.0',
+      error: 'An unexpected error occurred while fetching data from services'
+    });
+  }
 });
 
 app.get("/test",async(req,res)=>{
