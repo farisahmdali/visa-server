@@ -120,13 +120,25 @@ app.get("/test",async(req,res)=>{
 // OTP callback function for IMAP service
 const handleOtpReceived = async (otp: string,site:string): Promise<void> => {
   try {
-    domains.map((x)=>{
-      try{
-        axios.post(x+"/otp",{otp,site});
-      }catch(err){
-        console.log(err);
+    // Use Promise.allSettled to handle all requests properly
+    const results = await Promise.allSettled(
+      domains.map(domain => 
+        axios.post(`${domain}/otp`, {otp, site}, {
+          timeout: 5000, // 5 second timeout
+          headers: { 'Content-Type': 'application/json' }
+        })
+      )
+    );
+
+    // Log results
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        console.log(`✅ OTP sent to ${domains[index]} successfully`);
+      } else {
+        console.error(`❌ Failed to send OTP to ${domains[index]}:`, result.reason?.message);
       }
-    })
+    });
+
   } catch (error) {
     console.error('❌ Error handling received OTP:', error);
   }
