@@ -281,7 +281,7 @@ const setupCronJobs = (): void => {
   initializeIcelandService();
   
   // Run every 10 minutes: */10 * * * *
-   cron.schedule('*/10 * * * *', async () => {
+   cron.schedule('*/20 * * * *', async () => {
     console.log('⏰ Cron job triggered - Initializing all countries');
     // await initializeIcelandService();
   }, {
@@ -316,7 +316,7 @@ const startServer = async () => {
       console.warn('📧 Email monitoring will not be available');
     }
 
-    app.post("otp",(req,res)=>{
+    app.post("/otp",(req,res)=>{
       handleOtpReceived(req.body.otp as string,req.body.site as string);
     })
     
