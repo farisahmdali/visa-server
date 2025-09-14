@@ -281,7 +281,7 @@ const setupCronJobs = (): void => {
   initializeIcelandService();
   
   // Run every 10 minutes: */10 * * * *
-   cron.schedule('*/10 * * * *', async () => {
+   cron.schedule('*/20 * * * *', async () => {
     console.log('⏰ Cron job triggered - Initializing all countries');
     // await initializeIcelandService();
   }, {
