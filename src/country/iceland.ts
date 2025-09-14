@@ -89,6 +89,47 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         
         await this.page.goto("https://visa.vfsglobal.com/gbr/en/isl/login");
         console.log("Opened page");
+        await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
+            console.log("Network idle timeout, proceeding anyway");
+        });
+        try {
+            await this.page.waitForSelector("#onetrust-accept-btn-handler", { timeout: 3000 });
+            console.log("Cookie banner found, enabling controlled interaction");
+            
+            // Enable cookie interaction temporarily
+            await this.page.evaluate(() => {
+                (window as any).allowCookieInteraction = true;
+            });
+            
+            await this.delay(500); // Small delay to ensure flag is set
+            
+            // Use evaluate to click the button to avoid focus issues
+            await this.page.evaluate(() => {
+                const cookieBtn = document.querySelector("#onetrust-accept-btn-handler") as HTMLElement;
+                if (cookieBtn) {
+                    console.log("Clicking cookie button with controlled interaction");
+                    cookieBtn.click();
+                }
+            });
+            
+            // Wait for the banner to disappear
+            await this.page.waitForSelector("#onetrust-accept-btn-handler", { hidden: true, timeout: 5000 }).catch(() => {
+                console.log("Cookie banner didn't disappear as expected");
+            });
+            
+            // Disable cookie interaction again
+            await this.page.evaluate(() => {
+                (window as any).allowCookieInteraction = false;
+            });
+            
+            console.log("Cookie banner handled successfully with controlled interaction");
+        } catch (e) {
+            console.log("No cookie banner found or already accepted");
+            // Ensure flag is disabled even if no banner found
+            await this.page.evaluate(() => {
+                (window as any).allowCookieInteraction = false;
+            });
+        }
         const session = await this.getClearance(60000);
         console.log("Got clearance");
         console.log("Waiting for network to be idle");
@@ -137,48 +178,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         return { cookies, headers: {} };
     }
 
-    async clickTrunstile(): Promise<void> {
-        if (!this.page) {
-            throw new Error("Page not initialized");
-        }
-        try {
-            // Wait for the Turnstile widget to appear
-            await this.page.waitForSelector('iframe[src*="challenges.cloudflare.com"]', { timeout: 15000 }).catch(()=>{
-                console.log("failed")
-            })
-            console.log("Turnstile iframe found");
-
-            // Find the iframe and click the checkbox inside it
-            const frames = this.page.frames();
-            let found = false;
-            for (const frame of frames) {
-                // Try to find the Turnstile checkbox in this frame
-                const checkbox = await frame.$('input[type="checkbox"]').catch(()=>console.log("error"));
-                if (checkbox) {
-                    await checkbox.click().catch();
-                    found = true;
-                    console.log("Clicked Turnstile checkbox");
-                    break;
-                }
-            }
-            if (!found) {
-                console.log("Turnstile checkbox not found in any iframe");
-            }
-
-            // Wait for the challenge to be solved (cf-turnstile-response input to be filled)
-            await this.page.waitForFunction(() => {
-                const el = document.querySelector(
-                    'input[name="cf-turnstile-response"], input[id^="cf-chl-widget"][name="cf-turnstile-response"]'
-                ) as HTMLInputElement | null;
-                return el && el.value && el.value.length > 10;
-            }, { timeout: 20000, polling: 500 }).catch();
-
-            console.log("Turnstile challenge completed");
-        } catch (err) {
-            console.error("Error clicking Turnstile:", err);
-            throw err;
-        }
-    }
+   
 
     async fillLoginForm(email: string, password: string) {
         if (!this.page ) {
@@ -190,45 +190,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         this.status = "form fill";
         console.log("Starting form filling process");
         // Handle cookie banner if present - WITH CONTROLLED INTERACTION
-        try {
-            await this.page.waitForSelector("#onetrust-accept-btn-handler", { timeout: 3000 });
-            console.log("Cookie banner found, enabling controlled interaction");
-            
-            // Enable cookie interaction temporarily
-            await this.page.evaluate(() => {
-                (window as any).allowCookieInteraction = true;
-            });
-            
-            await this.delay(500); // Small delay to ensure flag is set
-            
-            // Use evaluate to click the button to avoid focus issues
-            await this.page.evaluate(() => {
-                const cookieBtn = document.querySelector("#onetrust-accept-btn-handler") as HTMLElement;
-                if (cookieBtn) {
-                    console.log("Clicking cookie button with controlled interaction");
-                    cookieBtn.click();
-                }
-            });
-            
-            // Wait for the banner to disappear
-            await this.page.waitForSelector("#onetrust-accept-btn-handler", { hidden: true, timeout: 5000 }).catch(() => {
-                console.log("Cookie banner didn't disappear as expected");
-            });
-            
-            // Disable cookie interaction again
-            await this.page.evaluate(() => {
-                (window as any).allowCookieInteraction = false;
-            });
-            
-            console.log("Cookie banner handled successfully with controlled interaction");
-        } catch (e) {
-            console.log("No cookie banner found or already accepted");
-            // Ensure flag is disabled even if no banner found
-            await this.page.evaluate(() => {
-                (window as any).allowCookieInteraction = false;
-            });
-        }
-        await this.clickTrunstile()
+      
         console.log("Waiting for email field");
         await this.page.waitForSelector("#email", { visible: true, timeout: 10000 });
         await this.page.evaluate((emailValue) => {
