@@ -129,7 +129,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             );
             console.log("Cloudflare challenge completed");
         } catch {
-            throw new Error("Cloudflare challenge timeout");
+            console.log("Cloudflare failed")
         }
 
         const cookies = await this.browser.cookies();
