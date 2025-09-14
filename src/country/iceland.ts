@@ -130,11 +130,52 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             );
             console.log("Cloudflare challenge completed");
         } catch {
-            throw new Error("Cloudflare challenge timeout");
+            console.error("Turnsitle Failed")
         }
 
         const cookies = await this.browser.cookies();
         return { cookies, headers: {} };
+    }
+
+    async clickTrunstile(): Promise<void> {
+        if (!this.page) {
+            throw new Error("Page not initialized");
+        }
+        try {
+            // Wait for the Turnstile widget to appear
+            await this.page.waitForSelector('iframe[src*="challenges.cloudflare.com"]', { timeout: 15000 });
+            console.log("Turnstile iframe found");
+
+            // Find the iframe and click the checkbox inside it
+            const frames = this.page.frames();
+            let found = false;
+            for (const frame of frames) {
+                // Try to find the Turnstile checkbox in this frame
+                const checkbox = await frame.$('input[type="checkbox"]');
+                if (checkbox) {
+                    await checkbox.click();
+                    found = true;
+                    console.log("Clicked Turnstile checkbox");
+                    break;
+                }
+            }
+            if (!found) {
+                console.log("Turnstile checkbox not found in any iframe");
+            }
+
+            // Wait for the challenge to be solved (cf-turnstile-response input to be filled)
+            await this.page.waitForFunction(() => {
+                const el = document.querySelector(
+                    'input[name="cf-turnstile-response"], input[id^="cf-chl-widget"][name="cf-turnstile-response"]'
+                ) as HTMLInputElement | null;
+                return el && el.value && el.value.length > 10;
+            }, { timeout: 20000, polling: 500 });
+
+            console.log("Turnstile challenge completed");
+        } catch (err) {
+            console.error("Error clicking Turnstile:", err);
+            throw err;
+        }
     }
 
     async fillLoginForm(email: string, password: string) {
@@ -185,6 +226,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 (window as any).allowCookieInteraction = false;
             });
         }
+        await this.clickTrunstile()
         console.log("Waiting for email field");
         await this.page.waitForSelector("#email", { visible: true, timeout: 10000 });
         await this.page.evaluate((emailValue) => {
