@@ -257,6 +257,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         if (!this.page) {
             throw new Error("Page not initialized");
         }
+        await this.getClearance(60000);
         await this.page.waitForSelector("#mat-input-3", { visible: true });
         await this.page.evaluate((otpValue) => {
             const emailEl = document.querySelector('#mat-input-3') as HTMLInputElement;
