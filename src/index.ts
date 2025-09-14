@@ -316,7 +316,7 @@ const startServer = async () => {
       console.warn('📧 Email monitoring will not be available');
     }
 
-    app.post("otp",(req,res)=>{
+    app.post("/otp",(req,res)=>{
       handleOtpReceived(req.body.otp as string,req.body.site as string);
     })
     
