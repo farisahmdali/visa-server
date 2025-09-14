@@ -89,47 +89,6 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         
         await this.page.goto("https://visa.vfsglobal.com/gbr/en/isl/login");
         console.log("Opened page");
-        await this.page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {
-            console.log("Network idle timeout, proceeding anyway");
-        });
-        try {
-            await this.page.waitForSelector("#onetrust-accept-btn-handler", { timeout: 3000 });
-            console.log("Cookie banner found, enabling controlled interaction");
-            
-            // Enable cookie interaction temporarily
-            await this.page.evaluate(() => {
-                (window as any).allowCookieInteraction = true;
-            });
-            
-            await this.delay(500); // Small delay to ensure flag is set
-            
-            // Use evaluate to click the button to avoid focus issues
-            await this.page.evaluate(() => {
-                const cookieBtn = document.querySelector("#onetrust-accept-btn-handler") as HTMLElement;
-                if (cookieBtn) {
-                    console.log("Clicking cookie button with controlled interaction");
-                    cookieBtn.click();
-                }
-            });
-            
-            // Wait for the banner to disappear
-            await this.page.waitForSelector("#onetrust-accept-btn-handler", { hidden: true, timeout: 5000 }).catch(() => {
-                console.log("Cookie banner didn't disappear as expected");
-            });
-            
-            // Disable cookie interaction again
-            await this.page.evaluate(() => {
-                (window as any).allowCookieInteraction = false;
-            });
-            
-            console.log("Cookie banner handled successfully with controlled interaction");
-        } catch (e) {
-            console.log("No cookie banner found or already accepted");
-            // Ensure flag is disabled even if no banner found
-            await this.page.evaluate(() => {
-                (window as any).allowCookieInteraction = false;
-            });
-        }
         const session = await this.getClearance(60000);
         console.log("Got clearance");
         console.log("Waiting for network to be idle");
@@ -190,7 +149,44 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         this.status = "form fill";
         console.log("Starting form filling process");
         // Handle cookie banner if present - WITH CONTROLLED INTERACTION
-      
+        try {
+            await this.page.waitForSelector("#onetrust-accept-btn-handler", { timeout: 3000 });
+            console.log("Cookie banner found, enabling controlled interaction");
+            
+            // Enable cookie interaction temporarily
+            await this.page.evaluate(() => {
+                (window as any).allowCookieInteraction = true;
+            });
+            
+            await this.delay(500); // Small delay to ensure flag is set
+            
+            // Use evaluate to click the button to avoid focus issues
+            await this.page.evaluate(() => {
+                const cookieBtn = document.querySelector("#onetrust-accept-btn-handler") as HTMLElement;
+                if (cookieBtn) {
+                    console.log("Clicking cookie button with controlled interaction");
+                    cookieBtn.click();
+                }
+            });
+            
+            // Wait for the banner to disappear
+            await this.page.waitForSelector("#onetrust-accept-btn-handler", { hidden: true, timeout: 5000 }).catch(() => {
+                console.log("Cookie banner didn't disappear as expected");
+            });
+            
+            // Disable cookie interaction again
+            await this.page.evaluate(() => {
+                (window as any).allowCookieInteraction = false;
+            });
+            
+            console.log("Cookie banner handled successfully with controlled interaction");
+        } catch (e) {
+            console.log("No cookie banner found or already accepted");
+            // Ensure flag is disabled even if no banner found
+            await this.page.evaluate(() => {
+                (window as any).allowCookieInteraction = false;
+            });
+        }
         console.log("Waiting for email field");
         await this.page.waitForSelector("#email", { visible: true, timeout: 10000 });
         await this.page.evaluate((emailValue) => {
