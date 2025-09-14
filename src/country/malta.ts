@@ -185,7 +185,8 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 (window as any).allowCookieInteraction = false;
             });
         }
-        await this.delay(10000);
+        await this.getClearance(60000);
+        // await this.delay(10000);
         console.log("Waiting for email field");
         await this.page.waitForSelector("#email", { visible: true, timeout: 10000 });
         await this.page.evaluate((emailValue) => {
