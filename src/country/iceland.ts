@@ -143,7 +143,9 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         }
         try {
             // Wait for the Turnstile widget to appear
-            await this.page.waitForSelector('iframe[src*="challenges.cloudflare.com"]', { timeout: 15000 });
+            await this.page.waitForSelector('iframe[src*="challenges.cloudflare.com"]', { timeout: 15000 }).catch(()=>{
+                console.log("failed")
+            })
             console.log("Turnstile iframe found");
 
             // Find the iframe and click the checkbox inside it
@@ -151,9 +153,9 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             let found = false;
             for (const frame of frames) {
                 // Try to find the Turnstile checkbox in this frame
-                const checkbox = await frame.$('input[type="checkbox"]');
+                const checkbox = await frame.$('input[type="checkbox"]').catch(()=>console.log("error"));
                 if (checkbox) {
-                    await checkbox.click();
+                    await checkbox.click().catch();
                     found = true;
                     console.log("Clicked Turnstile checkbox");
                     break;
@@ -169,7 +171,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                     'input[name="cf-turnstile-response"], input[id^="cf-chl-widget"][name="cf-turnstile-response"]'
                 ) as HTMLInputElement | null;
                 return el && el.value && el.value.length > 10;
-            }, { timeout: 20000, polling: 500 });
+            }, { timeout: 20000, polling: 500 }).catch();
 
             console.log("Turnstile challenge completed");
         } catch (err) {
