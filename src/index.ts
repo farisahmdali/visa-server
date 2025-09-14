@@ -82,15 +82,15 @@ app.get('/', async(req, res) => {
 
     // Process responses and handle any failures
     const responses = [set1Response, set2Response, set3Response];
-    const data: any = {};
+    let data: any = {};
 
     responses.forEach((response, index) => {
       if (response.status === 'fulfilled') {
-        data[`set${index + 1}`] = response.value.data;
+        data = {...data,...response.value.data};
       } else {
         const errorMsg = `Failed to fetch from ${domains[index]}: ${response.reason?.message || 'Unknown error'}`;
         console.error(`❌ ${errorMsg}`);
-        data[`set${index + 1}`] = null;
+        // data[`set${index + 1}`] = null;
       }
     });
 
