@@ -130,12 +130,14 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             );
             console.log("Cloudflare challenge completed");
         } catch {
-            throw new Error("Cloudflare challenge timeout");
+            console.error("Turnsitle Failed")
         }
 
         const cookies = await this.browser.cookies();
         return { cookies, headers: {} };
     }
+
+   
 
     async fillLoginForm(email: string, password: string) {
         if (!this.page ) {
@@ -185,8 +187,11 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 (window as any).allowCookieInteraction = false;
             });
         }
+        await this.getClearance(60000);
         console.log("Waiting for email field");
-        await this.page.waitForSelector("#email", { visible: true, timeout: 10000 });
+        await this.page.waitForSelector("#email", { visible: true, timeout: 10000 }).catch(()=>{
+            throw new Error("no email")
+        })
         await this.page.evaluate((emailValue) => {
             const emailEl = document.querySelector('#email') as HTMLInputElement;
             if (emailEl) {
@@ -254,6 +259,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         if (!this.page) {
             throw new Error("Page not initialized");
         }
+        await this.getClearance(60000);
         await this.page.waitForSelector("#mat-input-3", { visible: true });
         await this.page.evaluate((otpValue) => {
             const emailEl = document.querySelector('#mat-input-3') as HTMLInputElement;
