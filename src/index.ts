@@ -1,5 +1,7 @@
+
 // Note: Install required packages with: npm install node-cron @types/node-cron
 import express from 'express';
+import * as cluster from 'cluster';
 // import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -350,6 +352,32 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
-startServer();
+// Crash handlers to trigger restart by master
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection, exiting worker for restart:', reason);
+  process.exit(1);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception, exiting worker for restart:', error);
+  process.exit(1);
+});
+
+// Master/Worker pattern to auto-restart on crash
+if ((cluster as unknown as { isPrimary?: boolean; isMaster?: boolean }).isPrimary || (cluster as unknown as { isPrimary?: boolean; isMaster?: boolean }).isMaster) {
+  const forkWorker = () => {
+    const worker = (cluster as unknown as { fork: () => { id: number } }).fork();
+    console.log(`👷 Forked worker ${worker.id}`);
+  };
+
+  forkWorker();
+
+  (cluster as unknown as { on: (event: string, listener: (...args: any[]) => void) => void }).on('exit', (_worker: any, code: number, signal: string) => {
+    console.error(`💥 Worker exited (code=${code}, signal=${signal}). Restarting in 1s...`);
+    setTimeout(forkWorker, 1000);
+  });
+} else {
+  startServer();
+}
 
 export default app;

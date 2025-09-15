@@ -189,7 +189,9 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         }
         await this.getClearance(60000);
         console.log("Waiting for email field");
-        await this.page.waitForSelector("#email", { visible: true, timeout: 10000 });
+        await this.page.waitForSelector("#email", { visible: true, timeout: 10000 }).catch(()=>{
+            throw new Error("no email")
+        })
         await this.page.evaluate((emailValue) => {
             const emailEl = document.querySelector('#email') as HTMLInputElement;
             if (emailEl) {
