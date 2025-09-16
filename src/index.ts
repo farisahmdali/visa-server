@@ -1,5 +1,7 @@
+
 // Note: Install required packages with: npm install node-cron @types/node-cron
 import express from 'express';
+import cluster from 'cluster';
 // import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -310,21 +312,25 @@ const startServer = async () => {
     
     // Start IMAP service with callback
     try {
-      const imapServices:ImapService[] = []
-      const promises = emails.map((email, i) => {
-        const imapService = new ImapService(email, passwords[i])
-        imapServices.push(imapService)
-        return imapService.start(handleOtpReceived)
-      })
+      // const imapServices:ImapService[] = []
+      // const promises = emails.map((email, i) => {
+      //   const imapService = new ImapService(email, passwords[i])
+      //   imapServices.push(imapService)
+      //   return imapService.start(handleOtpReceived)
+      // })
     
       // Wait for all to connect
-      await Promise.all(promises)
+      // await Promise.all(promises)
     
       console.log('📧 All IMAP services started successfully');
     } catch (imapError) {
       console.warn('⚠️ IMAP service failed to start:', imapError);
       console.warn('📧 Email monitoring will not be available');
     }
+
+    app.post("/otp",(req,res)=>{
+      handleOtpReceived(req.body.otp as string,req.body.site as string);
+    })
     
     app.listen(PORT, () => {
       console.log(`🚀 Server is running on port ${PORT}`);
@@ -355,6 +361,33 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
-startServer();
+// Crash handlers to trigger restart by master
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection, exiting worker for restart:', reason);
+  process.exit(1);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception, exiting worker for restart:', error);
+  process.exit(1);
+});
+
+// Master/Worker pattern to auto-restart on crash
+const isPrimary = (cluster as unknown as { isPrimary?: boolean; isMaster?: boolean }).isPrimary ?? (cluster as unknown as { isPrimary?: boolean; isMaster?: boolean }).isMaster;
+if (isPrimary) {
+  const forkWorker = () => {
+    const worker = cluster.fork();
+    console.log(`👷 Forked worker ${worker.id}`);
+  };
+
+  forkWorker();
+
+  cluster.on('exit', (_worker, code, signal) => {
+    console.error(`💥 Worker exited (code=${code}, signal=${signal}). Restarting in 1s...`);
+    setTimeout(forkWorker, 1000);
+  });
+} else {
+  startServer();
+}
 
 export default app;
