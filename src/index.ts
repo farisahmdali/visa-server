@@ -73,34 +73,40 @@ const connectDB = async () => {
   }
 };
 
-app.get('/', async(req, res) => {
+app.get('/', async (req, res) => {
   try {
     // Make all requests concurrently for better performance
-    const [set1Response, set2Response, set3Response] = await Promise.allSettled([
+    const responses = await Promise.allSettled([
       axios.get(domains[0]),
       axios.get(domains[1]),
       axios.get(domains[2])
     ]);
 
-    // Process responses and handle any failures
-    const responses = [set1Response, set2Response, set3Response];
-    let data: any = {};
+    // Merge all nested data objects by country key
+    let mergedData: any = {};
 
-    responses.forEach((response, index) => {
+    responses.forEach((response, idx) => {
       if (response.status === 'fulfilled') {
-        data = {...data,...response.value.data};
+        // Each response.value.data is expected to be an object with country keys
+        const respData = response.value.data;
+        // Merge each country key
+        Object.keys(respData).forEach(countryKey => {
+          if (!mergedData[countryKey]) {
+            mergedData[countryKey] = {};
+          }
+          // Merge the visa center data for this country
+          Object.assign(mergedData[countryKey], respData[countryKey]);
+        });
       } else {
-        const errorMsg = `Failed to fetch from ${domains[index]}: ${response.reason?.message || 'Unknown error'}`;
+        const errorMsg = `Failed to fetch from ${domains[idx]}: ${response.reason?.message || 'Unknown error'}`;
         console.error(`❌ ${errorMsg}`);
-        // data[`set${index + 1}`] = null;
       }
     });
 
-    // Return response with all data (including null values for failed requests)
-    res.status(200).json({ 
+    res.status(200).json({
       message: 'Welcome to Visa Server API',
       version: '1.0.0',
-      data
+      data: mergedData
     });
 
   } catch (error) {
@@ -312,15 +318,15 @@ const startServer = async () => {
     
     // Start IMAP service with callback
     try {
-      // const imapServices:ImapService[] = []
-      // const promises = emails.map((email, i) => {
-      //   const imapService = new ImapService(email, passwords[i])
-      //   imapServices.push(imapService)
-      //   return imapService.start(handleOtpReceived)
-      // })
+      const imapServices:ImapService[] = []
+      const promises = emails.map((email, i) => {
+        const imapService = new ImapService(email, passwords[i])
+        imapServices.push(imapService)
+        return imapService.start(handleOtpReceived)
+      })
     
       // Wait for all to connect
-      // await Promise.all(promises)
+      await Promise.all(promises)
     
       console.log('📧 All IMAP services started successfully');
     } catch (imapError) {
