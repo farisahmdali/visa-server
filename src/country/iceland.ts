@@ -11,10 +11,28 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
     currentCenter?:string ;
     email?: string;
     password?: string;
-    constructor() {
+    interval: NodeJS.Timeout;
+
+    constructor(executablePath?: string) {
         this.page = null;
         this.status = "complete";
-        
+        // Set a timeout to automatically set status to "complete" after 10 minutes
+        this.interval = setTimeout(() => {
+            this.status = "complete";
+        }, 10 * 60 * 1000);
+    }
+
+    /**
+     * Updates the status and resets the 10-minute timeout.
+     * @param val The new status value.
+     */
+    async setStatus(val: "otp fill" | "init" | "complete" | "form fill") {
+        this.status = val;
+        clearTimeout(this.interval);
+        // Reset the timeout to set status to "complete" after 10 minutes of inactivity
+        this.interval = setTimeout(() => {
+            this.status = "complete";
+        }, 10 * 60 * 1000);
     }
 
     async init(email?: string, password?: string) {
@@ -30,7 +48,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         if(password){
             this.password = password;
         }
-            this.status = "init";
+            this.setStatus("init")
         const connectOptions: any = {
             headless: false,
             args: [
@@ -49,6 +67,9 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             ignoreAllFlags: false
         };
         const connection = await connect({...connectOptions,});
+         if(this.page){
+            this.page.close().catch()
+        }
         this.page = connection.page;
         this.browser = connection.browser;
         this.page.setDefaultTimeout(600000);
@@ -102,7 +123,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         console.error("❌ Error in init:", error);
         this.status = "complete";
         if (this.page) {
-            await this.page.close();
+            await this.page.close().catch();
         }
         this.init();
     }
@@ -146,7 +167,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         if(this.status !== "init") {
             return;
         }
-        this.status = "form fill";
+        this.setStatus("form fill")
         console.log("Starting form filling process");
         // Handle cookie banner if present - WITH CONTROLLED INTERACTION
         try {
@@ -255,7 +276,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         if(this.status !== "form fill") {
             return;
         }
-        this.status = "otp fill";
+        this.setStatus("otp fill")
         if (!this.page) {
             throw new Error("Page not initialized");
         }
@@ -549,7 +570,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 }
             }
         }
-        this.page.close();
+        this.page.close().catch();
             console.log("✅ Dropdown selection completed");
             
             this.status = "complete";
@@ -557,7 +578,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             console.error("❌ Error in getSlotsAvailable:", error);
             this.status = "complete";
             if (this.page) {
-                await this.page.close();
+                await this.page.close().catch();
             }
         }
     }

@@ -35,6 +35,8 @@ export class ImapService {
     private isConnected: boolean = false;
     private checkInterval: NodeJS.Timeout | null = null;
     private checkIntervalMs: number = 10000; // 10 seconds
+    private maxConnectRetries: number = 5;
+    private initialReconnectDelayMs: number = 2000; // 2 seconds
 
     constructor(email:string,password:string) {
         this.config = {
@@ -56,8 +58,13 @@ export class ImapService {
     public async start(otpCallback: OtpCallback): Promise<void> {
         try {
             this.otpCallback = otpCallback;
-            await this.connect();
+            await this.connectWithRetry();
             await this.startMessageChecking();
+            this.connection.imap.on('close', () => {
+                console.warn("⚠️ IMAP connection closed");
+                this.isConnected = false;
+                this.reconnect();
+            });
             console.log("✅ IMAP service started successfully");
         } catch (error) {
             console.error("❌ Failed to start IMAP service:", error);
@@ -136,6 +143,42 @@ export class ImapService {
     }
 
     /**
+     * Connect to IMAP server with retry and exponential backoff
+     */
+    private async connectWithRetry(
+        maxRetries: number = this.maxConnectRetries,
+        initialDelayMs: number = this.initialReconnectDelayMs
+    ): Promise<void> {
+        let attempt = 0;
+        let delayMs = initialDelayMs;
+
+        while (true) {
+            try {
+                attempt += 1;
+                console.log(`📡 Connecting to IMAP (attempt ${attempt}/${maxRetries})...`);
+                await this.connect();
+                return;
+            } catch (error) {
+                if (attempt >= maxRetries) {
+                    console.error("⛔ Exhausted IMAP connection retries");
+                    throw error;
+                }
+                const jitter = Math.floor(Math.random() * 250);
+                console.warn(`⚠️ Connect attempt ${attempt} failed. Retrying in ${delayMs + jitter}ms...`);
+                await this.delay(delayMs + jitter);
+                delayMs = Math.min(delayMs * 2, 30000); // cap backoff at 30s
+            }
+        }
+    }
+
+    /**
+     * Promise-based delay utility
+     */
+    private async delay(ms: number): Promise<void> {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    /**
      * Start periodic message checking
      */
     private async startMessageChecking(): Promise<void> {
@@ -147,6 +190,13 @@ export class ImapService {
             if (this.isConnected) {
                 console.log("🔍 Checking for new messages...");
                 await this.handleNewMessages();
+            } else {
+                // Try to re-establish connection in the background
+                try {
+                    await this.connectWithRetry();
+                } catch (e) {
+                    // Keep silent here to avoid noisy logs every tick; reconnect() already logs
+                }
             }
         }, this.checkIntervalMs);
 
@@ -280,7 +330,7 @@ export class ImapService {
                 this.connection.end();
             }
             
-            await this.connect();
+            await this.connectWithRetry();
             console.log("✅ Reconnected successfully");
         } catch (error) {
             console.error("❌ Reconnection failed:", error);
