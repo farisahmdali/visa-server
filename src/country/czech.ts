@@ -12,10 +12,28 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
     status:"otp fill" | "init" | "complete" | "form fill"
     email?: string;
     password?: string;
-    constructor() {
+    interval: NodeJS.Timeout;
+
+    constructor(executablePath?: string) {
         this.page = null;
         this.status = "complete";
-        
+        // Set a timeout to automatically set status to "complete" after 10 minutes
+        this.interval = setTimeout(() => {
+            this.status = "complete";
+        }, 10 * 60 * 1000);
+    }
+
+    /**
+     * Updates the status and resets the 10-minute timeout.
+     * @param val The new status value.
+     */
+    async setStatus(val: "otp fill" | "init" | "complete" | "form fill") {
+        this.status = val;
+        clearTimeout(this.interval);
+        // Reset the timeout to set status to "complete" after 10 minutes of inactivity
+        this.interval = setTimeout(() => {
+            this.status = "complete";
+        }, 10 * 60 * 1000);
     }
 
     async init(email?: string, password?: string) {
@@ -31,7 +49,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         if(password){
             this.password = password;
         }
-        this.status = "init";
+        this.setStatus("init");
         const connectOptions: any = {
             headless: false,
             args: [
@@ -100,7 +118,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         }
     } catch (error) {
         console.error("❌ Error in init:", error);
-        this.status = "complete";
+        this.setStatus("complete");
         if (this.page) {
             await this.page.close();
         }
@@ -144,7 +162,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         if(this.status !== "init") {
             return;
         }
-        this.status = "form fill";
+       this.setStatus("form fill");
         console.log("Starting form filling process");
         // Handle cookie banner if present - WITH CONTROLLED INTERACTION
         try {
@@ -250,7 +268,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         if(this.status !== "form fill") {
             return;
         }
-        this.status = "otp fill";
+        this.setStatus("otp fill");
         if (!this.page) {
             throw new Error("Page not initialized");
         }
@@ -631,10 +649,10 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
                 this.page.close();
             }
         
-            this.status = "complete";
+            this.setStatus("complete");
         } catch (error) {
             console.error("❌ Error in getSlotsAvailable:", error);
-            this.status = "complete";
+            this.setStatus("complete");
             if (this.page) {
                 await this.page.close();
             }
