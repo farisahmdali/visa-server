@@ -68,6 +68,9 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             ignoreAllFlags: false,
         };
         const connection = await connect(connectOptions);
+         if(this.page){
+            this.page.close().catch()
+        }
         this.page = connection.page;
         this.browser = connection.browser;
         this.page.setDefaultTimeout(600000);
@@ -120,7 +123,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         console.error("❌ Error in init:", error);
         this.setStatus("complete")
         if (this.page) {
-            await this.page.close();
+            await this.page.close().catch();
         }
         this.init();
     }
@@ -668,7 +671,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
         }
             console.log("✅ Form selection process completed");
             if(this.page) {
-                this.page.close();
+                this.page.close().catch();
             }
         
             this.setStatus("complete")
@@ -676,7 +679,7 @@ import { connect, type PageWithCursor } from "puppeteer-real-browser";
             console.error("❌ Error in getSlotsAvailable:", error);
             this.setStatus("complete")
             if (this.page) {
-                await this.page.close();
+                await this.page.close().catch();
             }
         }
     }
