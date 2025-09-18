@@ -36,15 +36,15 @@ const index = 0
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/visa-server';
-const iceland = new Iceland();
+// const iceland = new Iceland();
 
-const norway = new Norway();
-const malta = new Malta();
-const lithuania = new Lithuania();
-// const latvia = new Latvia();
-// const italy = new Italy();
-// const hungry = new Hungry();
-// const finland = new Finland();
+// const norway = new Norway();
+// const malta = new Malta();
+// const lithuania = new Lithuania();
+const latvia = new Latvia();
+const italy = new Italy();
+const hungry = new Hungry();
+const finland = new Finland();
 // const estonia = new Estonia();
 // const czech = new Czech();
 // const croatia = new Croatia();
@@ -75,14 +75,14 @@ app.get('/', (req, res) => {
     message: 'Welcome to Visa Server API',
     version: '1.0.0',
     data:{
-      iceland:iceland.slot,
-      norway:norway.slot,
-      malta:malta.slot,
-      lithuania:lithuania.slot,
-      // latvia:latvia.slot,
-      // italy:italy.slot,
-      // hungry:hungry.slot,
-      // finland:finland.slot,
+      // iceland:iceland.slot,
+      // norway:norway.slot,
+      // malta:malta.slot,
+      // lithuania:lithuania.slot,
+      latvia:latvia.slot,
+      italy:italy.slot,
+      hungry:hungry.slot,
+      finland:finland.slot,
       // estonia:estonia.slot,
       // czech:czech.slot,
       // croatia:croatia.slot,
@@ -102,21 +102,21 @@ const handleOtpReceived = async (otp: string,site:string): Promise<void> => {
     console.log(`🔑 OTP received from email: ${otp}`);
     console.log(`📧 OTP stored and available at: http://localhost:${PORT}/otp`);
     if(site === "iceland"){
-      iceland.fillOTP(otp)
+      // iceland.fillOTP(otp)
     }else if(site === "norway"){
-      norway.fillOTP(otp)
+      // norway.fillOTP(otp)
     }else if(site === "malta"){
-      malta.fillOTP(otp)
+      // malta.fillOTP(otp)
     }else if(site === "lithuania"){
-      lithuania.fillOTP(otp)
+      // lithuania.fillOTP(otp)
     }else if(site === "latvia"){
-      // latvia.fillOTP(otp)
+      latvia.fillOTP(otp)
     }else if(site === "italy"){
-      // italy.fillOTP(otp)
+      italy.fillOTP(otp)
     }else if(site === "hungry"){
-      // hungry.fillOTP(otp)
+      hungry.fillOTP(otp)
     }else if(site === "finland"){
-      // finland.fillOTP(otp)
+      finland.fillOTP(otp)
     }else if(site === "estonia"){
       // estonia.fillOTP(otp)
     }else if(site === "czech"){
@@ -173,14 +173,14 @@ const initializeCountryWithRetry = async (country: {name:string, instance:Icelan
 const initializeCountriesSequentially = async (): Promise<void> => {
   try{
   const countries = [
-    { instance: iceland, name: 'Iceland', index: 0 },
-    { instance: norway, name: 'Norway', index: 1 },
-    { instance: malta, name: 'Malta', index: 2 },
-    { instance: lithuania, name: 'Lithuania', index: 3 },
-    // { instance: latvia, name: 'Latvia', index: 0 },
-    // { instance: italy, name: 'Italy', index: 1 },
-    // { instance: hungry, name: 'Hungary', index: 2 },
-    // { instance: finland, name: 'Finland', index: 3 },
+    // { instance: iceland, name: 'Iceland', index: 0 },
+    // { instance: norway, name: 'Norway', index: 1 },
+    // { instance: malta, name: 'Malta', index: 2 },
+    // { instance: lithuania, name: 'Lithuania', index: 3 },
+    { instance: latvia, name: 'Latvia', index: 0 },
+    { instance: italy, name: 'Italy', index: 1 },
+    { instance: hungry, name: 'Hungary', index: 2 },
+    { instance: finland, name: 'Finland', index: 3 },
     // { instance: estonia, name: 'Estonia', index: 0 },
     // { instance: czech, name: 'Czech Republic', index: 1 },
     // { instance: croatia, name: 'Croatia', index: 2 },
@@ -216,14 +216,14 @@ const initializeCountriesSequentially = async (): Promise<void> => {
 // Alternative: Limited concurrent execution (use this for better performance if sequential is too slow)
 const initializeCountriesConcurrent = async (concurrencyLimit: number = 3): Promise<void> => {
   const countries = [
-    { instance: iceland, name: 'Iceland', index: 0 },
-    { instance: norway, name: 'Norway', index: 1 },
-    { instance: malta, name: 'Malta', index: 2 },
-    { instance: lithuania, name: 'Lithuania', index: 3 },
-    // { instance: latvia, name: 'Latvia', index: 0 },
-    // { instance: italy, name: 'Italy', index: 1 },
-    // { instance: hungry, name: 'Hungary', index: 2 },
-    // { instance: finland, name: 'Finland', index: 3 },
+    // { instance: iceland, name: 'Iceland', index: 0 },
+    // { instance: norway, name: 'Norway', index: 1 },
+    // { instance: malta, name: 'Malta', index: 2 },
+    // { instance: lithuania, name: 'Lithuania', index: 3 },
+    { instance: latvia, name: 'Latvia', index: 0 },
+    { instance: italy, name: 'Italy', index: 1 },
+    { instance: hungry, name: 'Hungary', index: 2 },
+    { instance: finland, name: 'Finland', index: 3 },
     // { instance: estonia, name: 'Estonia', index: 0 },
     // { instance: czech, name: 'Czech Republic', index: 1 },
     // { instance: croatia, name: 'Croatia', index: 2 },
